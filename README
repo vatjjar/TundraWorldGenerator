@@ -1,0 +1,13 @@
+Tundra world generator tools aim to be a set of python scripts for easy
+procedural generation of terrains and its components to be run with
+realXtend Tundra client.
+
+Currently provided modules:
+
+- TerrainGenerator.py: A set of tools for generating heightmaps
+and textures for shader based terrain mapping. See python module
+for further documentation and examples.
+
+- WorldGenerator.py: not yet released
+
+- TextureGenerator.py: not yet released
