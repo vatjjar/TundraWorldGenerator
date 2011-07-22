@@ -57,6 +57,16 @@ class TerrainGenerator():
         return True
 
 #############################################################################
+# Terrain textual output methods
+#
+
+    def printmessage(self, message):
+        sys.stdout.write(message + "\n")
+
+    def printerror(self, message):
+        sys.stderr.write("ERROR: " + str(message) + "\n")
+
+#############################################################################
 # Terrain file manipulators
 #
 
@@ -68,7 +78,7 @@ class TerrainGenerator():
               Return value: True if file input succeeded, otherwise False
         """
         if not os.path.exists(filename):
-            print "File open failed!"
+            self.printerror("Requested file " + str(filename) + " does not exist.")
             return False
         f = open(filename, "rb")
         size_buf = array.array("I")
@@ -89,14 +99,15 @@ class TerrainGenerator():
         return True
 
     def tofile(self, filename):
-        """ TerrainGenerator.tofiles(filename):
+        """ TerrainGenerator.tofile(filename):
             - tofile() writes the current terrain vector into file in a local filesystem. What ever is at the moment
               written in internal data table, is written to the file.
             - output file format is NTF, which is directly loadable by Tundra.
             Return value: True if generator succeeded, otherwise False
         """
         if os.path.exists(filename):
-            os.remove(filename)
+            self.printerror("Requested output file " + str(filename) + " already exists. Aborting.")
+            return False
         f = open(filename, "wb")
         s_buf = array.array("I")
         s_buf.fromlist([self.width, self.height])
@@ -126,6 +137,7 @@ class TerrainGenerator():
             image2 = image.resize((self.width*self.cPatchSize, self.height*self.cPatchSize), Image.ANTIALIAS)
             pixels = image2.load()
         except IOError:
+            self.printerror("File input from " + str(imagefile) + " failed. Aborting!")
             return False
         for i in range(self.width*self.cPatchSize):
             for j in range(self.height*self.cPatchSize):
@@ -156,7 +168,7 @@ class TerrainGenerator():
                 sizeispoweroftwo = True
                 break
         if sizeispoweroftwo == False:
-            print "Size is not a power of Two or exceed 128"
+            self.printerror("Size is not a power of Two or exceed 128")
             return False
         self.initialize(size, size)
         w = size*self.cPatchSize
