@@ -14,6 +14,8 @@ class TXMLOutput():
         self.indent = 0
         self.entity_id = 0
 
+    ### Helpers
+
     def output(self, string):
         self.indent_str = ""
         for i in range(self.indent):
@@ -26,6 +28,11 @@ class TXMLOutput():
     def decrease_indent(self):
         self.indent = self.indent - 1
         if self.indent < 0: self.indent = 0
+
+    ### Getters/setters
+
+    def getCurrentEntityID(self):
+        return self.entity_id
 
     ### Scene level
 
