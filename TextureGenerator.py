@@ -1,14 +1,21 @@
 #!/usr/bin/python
+#
+# Author: Jarkko Vatjus-Anttila <jvatjusanttila@gmail.com>
+#
+# For conditions of distribution and use, see copyright notice in license.txt
+#
 
 import sys, os, io
-import array
 import random
 import numpy
-from math import *
+import math
+
 from PIL import Image
 
 class TextureGenerator():
-    """ class TextureGenerator():
+    """ class TextureGenerator(): A collection of procedural methods for
+        creating texture files with various content.
+        Uses Python Imaging Library for image I/O
     """
 
     def __init__(self, width=256, height=256):
@@ -26,14 +33,28 @@ class TextureGenerator():
         self.b_array = numpy.zeros([width,height], dtype=float)
         return True
 
+#############################################################################
+# Texture textual output methods
+#
+
+    def printmessage(self, message):
+        sys.stdout.write(message + "\n")
+
+    def printerror(self, message):
+        sys.stderr.write("ERROR: " + str(message) + "\n")
+
+#############################################################################
+# Image I/O
+#
+
     def fromimage(self, imagefile):
-        try:
-            image = Image.open(imagefile)
-            imagesize = image.size
-            print "image x,y %d,%d" % (imagesize[0], imagesize[1])
-            pixels = image.load()
-        except IOError:
-            return False
+        try: image = Image.open(imagefile)
+        except IOError: self.printerror("File "+str(filename)+" open failed. Aborting"); return False
+
+        imagesize = image.size
+        self.printmessage("image x,y %d,%d" % (imagesize[0], imagesize[1]))
+
+        pixels = image.load()
         self.initialize(imagesize[0], imagesize[1])
         for i in range(imagesize[0]):
             for j in range(imagesize[1]):
@@ -43,18 +64,20 @@ class TextureGenerator():
         return True
 
     def toimage(self, filename, fileformat="TGA"):
-        #print "Creating %s" % filename
         if os.path.exists(filename):
-            #print "Deleting old file!"
-            os.remove(filename)
-        f = open(filename, "wb")
+            self.printerror("Requested output file " + str(filename) + " already exists. Aborting.")
+            return False
+
+        try: f = open(filename, "wb")
+        except IOError: self.printmessage("File write to "+str(filename)+" failed. Aborting!"); return False
+
         image = Image.new("RGB", (self.width, self.height))
         data = []
         for i in range(self.width):
             for j in range(self.height):
                 r, g, b = self.data_to_rgb(i, j)
                 data.append(b*256*256 + g*256 + r)
-        #print len(data)
+
         image.putdata(data)
         image.save(filename, fileformat)
 
@@ -91,9 +114,12 @@ class TextureGenerator():
 if __name__ == "__main__": # if run standalone
     texture = TextureGenerator(512, 512)
 
+    print "Generating grass texture..."
     texture.create_singlecolortexture(30,100,30,50)
-    texture.toimage("./blender-export/generated_grass.png", "PNG")
+    texture.toimage("./resources/generated_grass.png", "PNG")
+    print "Generating stone texture..."
     texture.create_singlecolortexture(90,83,73,50)
-    texture.toimage("./blender-export/generated_stone.png", "PNG")
+    texture.toimage("./resources/generated_stone.png", "PNG")
+    print "Generating sand texture..."
     texture.create_singlecolortexture(160,136,88,70)
-    texture.toimage("./blender-export/generated_sand.png", "PNG")
+    texture.toimage("./resources/generated_sand.png", "PNG")
