@@ -77,10 +77,9 @@ class TerrainGenerator():
               self.d_array table.
               Return value: True if file input succeeded, otherwise False
         """
-        if not os.path.exists(filename):
-            self.printerror("Requested file " + str(filename) + " does not exist.")
-            return False
-        f = open(filename, "rb")
+        try: f = open(filename, "rb")
+        except IOError: self.printerror("Requested file " + str(filename) + " does not exist."); return False
+
         size_buf = array.array("I")
         size_buf.fromfile(f, 2)
         l = size_buf.tolist()
@@ -132,13 +131,13 @@ class TerrainGenerator():
               node in the terrain.
             Return value: True if file input succeeded, otherwise False
         """
-        try:
-            image = Image.open(imagefile)
-            image2 = image.resize((self.width*self.cPatchSize, self.height*self.cPatchSize), Image.ANTIALIAS)
-            pixels = image2.load()
+        try: image = Image.open(imagefile)
         except IOError:
             self.printerror("File input from " + str(imagefile) + " failed. Aborting!")
             return False
+
+        image2 = image.resize((self.width*self.cPatchSize, self.height*self.cPatchSize), Image.ANTIALIAS)
+        pixels = image2.load()
         for i in range(self.width*self.cPatchSize):
             for j in range(self.height*self.cPatchSize):
                 self.d_array[i][j] = (pixels[i,j][0] + pixels[i,j][1] + pixels[i,j][2]) / 3.0
