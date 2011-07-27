@@ -3,4 +3,5 @@ OTHER_FILES += \
     TextureGenerator.py \
     TerrainGenerator.py \
     README \
-    license.txt
+    license.txt \
+    TXMLOutput.py
