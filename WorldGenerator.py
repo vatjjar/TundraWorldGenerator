@@ -9,6 +9,7 @@ import sys
 import random
 
 import TerrainGenerator
+import MeshGenerator
 import TXMLOutput
 
 class WorldGenerator():
@@ -97,7 +98,7 @@ class WorldGenerator():
         self.TXML.createAttribute("Visible", "true")
         self.TXML.endComponent()
         # Rigidbody -component
-        self.create_component_rigidbody(reference, "1", "4", mesh)
+        #self.create_component_rigidbody(reference, "1", "4", mesh)
         self.TXML.endEntity()
 
     def create_terrain(self, reference, materials, heightmap, collision, width, height):
@@ -170,7 +171,10 @@ class WorldGenerator():
         self.create_avatar("local://", "avatarapplication.js")
 
         self.message("Generating forest...")
-        for i in range(300):
+        mesh = MeshGenerator.MeshGenerator()
+        mesh.createPlane()
+        mesh.toFile("plane.mesh.xml", overwrite=True)
+        for i in range(20):
             x = random.randint(0, width*self.cPatchSize)
             y = random.randint(0, height*self.cPatchSize)
             z = self.terrain.get_height(x,y)
@@ -178,9 +182,9 @@ class WorldGenerator():
             y = y - height*self.cPatchSize/2
             if (z > 2.0) and (z < self.terrain.get_maxitem()/2.0):
                 self.create_static_mesh("Tree"+str(self.TXML.getCurrentEntityID()),
-                                        "sassa_asimina_g.mesh",
+                                        "plane.mesh",
                                         "local://",
-                                        ("m_sassafaras_leaves.material", "m_asimina_bark.material", "m_asimina_leaves.material"),
+                                        (),
                                         y, x, z)
                 #print "creaeting in %d %d %d" % (x, y, z)
 
