@@ -15,7 +15,11 @@ Currently provided generator modules:
   - TextureGenerator.py: A library of procedural algorithms for generation
   of texture maps. At the moment single color textures are supported.
 
+  - MeshGenerator.py:
+
 Currently provided support modules are
 
   - TXMLOutput.py: A class for formatting TXML output stream for the
   generator
+
+  - OgreXMLOutput.py:
