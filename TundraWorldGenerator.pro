@@ -4,4 +4,6 @@ OTHER_FILES += \
     TerrainGenerator.py \
     README \
     license.txt \
-    TXMLOutput.py
+    TXMLOutput.py \
+    MeshGenerator.py \
+    OgreXMLOutput.py
