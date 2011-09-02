@@ -28,9 +28,13 @@ class MeshGenerator():
     def initialize(self, vertices=1, faces=1, texcoords=1, normals=1):
         """ MeshGenerator.initialize():
         """
+        self.n_vertices = vertices;
+        self.n_faces = faces;
+        self.n_texcoords = texcoords;
+        self.n_normals = normals
         self.a_vertices = numpy.zeros([vertices, 3], dtype=float)
         self.a_normals = numpy.zeros([normals, 3], dtype=float)
-        self.a_faces = numpy.zeros([faces, 3], dtype=float)
+        self.a_faces = numpy.zeros([faces, 3], dtype=int)
         self.a_texcoords = numpy.zeros([texcoords, 2], dtype=float)
         self.intend = 0
         return True
@@ -61,6 +65,14 @@ class MeshGenerator():
             self.OgreXML.endVertex()
         self.OgreXML.endVertexbuffer()
         self.OgreXML.endSharedgeometry()
+        self.OgreXML.startSubMeshes()
+        self.OgreXML.startSubMesh("test.material", True)
+        self.OgreXML.startFaces(len(self.a_faces))
+        for i in range(len(self.a_faces)):
+            self.OgreXML.outputFace(self.a_faces[i,0], self.a_faces[i,1], self.a_faces[i,2])
+        self.OgreXML.endFaces()
+        self.OgreXML.endSubMesh()
+        self.OgreXML.endSubMeshes()
         self.OgreXML.endMesh()
         self.OgreXML.toFile(filename, overwrite)
         return True
@@ -75,12 +87,15 @@ class MeshGenerator():
     def createPlane(self, LOD=1):
         """ MeshGenerator.createPlane(self, LOD): Create a plane mesh component
             - Method will create a plane mesh component in XZ-plane whose size is 1 times 1 units in
-              coordinate system.
+              coordinate system and which is centered to origin.
             - Level of detail will range number of faces in the plane from 2-50. LOD levels 1-5 are accepted
         """
         self.initialize(vertices=(LOD+1)*(LOD+1), faces=2*LOD*LOD, normals=(LOD+1)*(LOD+1), texcoords=(LOD+1)*(LOD+1))
         x_delta = 1.0 / LOD
         y_delta = 1.0 / LOD
+        #
+        # First we create vertices, normals and texcoords
+        #
         for x in range(LOD+1):
             for y in range(LOD+1):
                 #print "Injecting vertex %d with data %f %f %f" % (x*(LOD+1)+y, -1+x*x_delta, 0, -1+y*y_delta)
@@ -94,6 +109,19 @@ class MeshGenerator():
                 #print "Injecting texcoord %d with data %f %f" % (x*(LOD+1)+y, (x*x_delta)/2.0, (y*y_delta)/2.0)
                 self.a_texcoords[x*(LOD+1)+y, 0] = 0.0 + x*x_delta
                 self.a_texcoords[x*(LOD+1)+y, 1] = 0.0 + y*y_delta
+        #
+        # And according to above, we create faces
+        #
+        for x in range(LOD):
+            for y in range(LOD):
+                #print "Injecting face %d with vertices %d %d %d" % ((2*(x*LOD+y)), 0     + y+x*(LOD+1), 1     + y+x*(LOD+1), LOD+2 + y+x*(LOD+1))
+                self.a_faces[2*(x*LOD+y), 0]   = 0     + y+x*(LOD+1)
+                self.a_faces[2*(x*LOD+y), 1]   = 1     + y+x*(LOD+1)
+                self.a_faces[2*(x*LOD+y), 2]   = LOD+2 + y+x*(LOD+1)
+                #print "Injecting face %d with vertices %d %d %d" % ((2*(x*LOD+y)+1), 0     + y+x*(LOD+1),LOD+2 + y+x*(LOD+1),LOD+1   + y+x*(LOD+1))
+                self.a_faces[2*(x*LOD+y)+1, 0] = 0     + y+x*(LOD+1)
+                self.a_faces[2*(x*LOD+y)+1, 1] = LOD+2 + y+x*(LOD+1)
+                self.a_faces[2*(x*LOD+y)+1, 2] = LOD+1 + y+x*(LOD+1)
 
     def createCube(self, LOD=1):
         self.initialize(vertices=8, faces=12, normals=8, texcoords=8)
@@ -101,19 +129,33 @@ class MeshGenerator():
 ############################################################################
 # Transformation helpers, for procedural meshes
 #
-# - Translate
 # - Rotate
+# - Translate
+# - Scale
 # - MatrixMultiply
 #############################################################################
 
     def rotate(self):
         return
 
-    def translate(self):
-        return
+    def translate(self, x=0.0, y=0.0, z=0.0):
+        for i in range(self.n_vertices):
+            self.a_vertices[i, 0] = self.a_vertices[i,0] + float(x)
+            self.a_vertices[i, 1] = self.a_vertices[i,1] + float(y)
+            self.a_vertices[i, 2] = self.a_vertices[i,2] + float(z)
 
-    def matrixMultiply(self):
-        return
+    def scale(self, x=1.0, y=1.0, z=1.0):
+        for i in range(self.n_vertices):
+            self.a_vertices[i, 0] = self.a_vertices[i,0] * float(x)
+            self.a_vertices[i, 1] = self.a_vertices[i,1] * float(y)
+            self.a_vertices[i, 2] = self.a_vertices[i,2] * float(z)
+
+    def matrixMultiply(self, m):
+        for i in range(self.n_vertices):
+            for j in range(3):
+                self.a_vertices[i,0] = m[j,0]*self.a_vertices[0,0] + \
+                                       m[j,1]*self.a_vertices[0,1] + \
+                                       m[j,2]*self.a_vertices[0,2]
 
 #############################################################################
 
