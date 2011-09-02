@@ -93,6 +93,30 @@ class OgreXMLOutput():
         self.decreaseIndent()
         self.outputXML("</vertex>")
 
+    def startSubMeshes(self):
+        self.outputXML("<submeshes>")
+        self.increaseIndent()
+
+    def endSubMeshes(self):
+        self.decreaseIndent()
+        self.outputXML("</submeshes>")
+
+    def startSubMesh(self, material, sharedvertices):
+        self.outputXML("<submesh material=\""+str(material)+"\" usesharedvertices=\""+str(sharedvertices)+"\">")
+        self.increaseIndent()
+
+    def endSubMesh(self):
+        self.decreaseIndent()
+        self.outputXML("</submesh>")
+
+    def startFaces(self, faces):
+        self.outputXML("<faces count=\""+str(faces)+"\">")
+        self.increaseIndent()
+
+    def endFaces(self):
+        self.decreaseIndent()
+        self.outputXML("</faces>")
+
     def outputPosition(self, x, y, z):
         self.outputXML("<position x=\""+str(x)+"\" y=\""+str(y)+"\" z=\""+str(z)+"\"/>")
 
@@ -102,12 +126,15 @@ class OgreXMLOutput():
     def outputTexcoord(self, u, v):
         self.outputXML("<texcoord u=\""+str(u)+"\" v=\""+str(v)+"\"/>")
 
+    def outputFace(self, v1, v2, v3):
+        self.outputXML("<face v1=\""+str(v1)+"\" v2=\""+str(v2)+"\" v3=\""+str(v3)+"\"/>")
+
 #############################################################################
 # Test case:
 #
 
 if __name__ == "__main__": # if run standalone
-    # The test case here will output a few components to stdout, which will
+    # The test case here will output a few components to buffer, which will
     # look like OgreXML output
     t = OgreXMLOutput()
     t.startMesh()
