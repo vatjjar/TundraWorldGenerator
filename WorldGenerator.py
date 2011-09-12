@@ -8,8 +8,6 @@
 import sys
 import random
 
-import TerrainGenerator
-import MeshGenerator
 import TXMLOutput
 
 class WorldGenerator():
@@ -28,6 +26,9 @@ class WorldGenerator():
 
     def message(self, string):
         sys.stderr.write(string + "\n")
+
+    def toFile(self, filename, overwrite=False):
+        self.TXML.toFile(filename, overwrite)
 
     ### Attribute creation, component and entity start and stop signals
 
@@ -154,47 +155,52 @@ class WorldGenerator():
         self.TXML.endComponent()
         self.TXML.endEntity()
 
-    ### High level world generation itself
-
-    def generateworld(self, width, height):
-        self.TXML.startScene()
-
-        self.message("Generating terrain...")
-        self.create_terrain("local://", ("terrainweighted2.material",), "terrain.ntf", "", width, height)
-        self.terrain.fromdiamondsquare(width, 10, -5, -5, 10)
-        self.terrain.rescale(-20, 50)
-        self.terrain.saturate(-5)
-        self.terrain.create_weightmap("./resources/terrain.tga")
-        self.terrain.tofile("./resources/terrain.ntf")
-
-        self.create_waterplane(width*self.cPatchSize, height*self.cPatchSize, -1)
-        self.create_avatar("local://", "avatarapplication.js")
-
-        self.message("Generating forest...")
-        mesh = MeshGenerator.MeshGenerator()
-        mesh.createPlane()
-        mesh.toFile("plane.mesh.xml", overwrite=True)
-        for i in range(20):
-            x = random.randint(0, width*self.cPatchSize)
-            y = random.randint(0, height*self.cPatchSize)
-            z = self.terrain.get_height(x,y)
-            x = x - width*self.cPatchSize/2
-            y = y - height*self.cPatchSize/2
-            if (z > 2.0) and (z < self.terrain.get_maxitem()/2.0):
-                self.create_static_mesh("Tree"+str(self.TXML.getCurrentEntityID()),
-                                        "plane.mesh",
-                                        "local://",
-                                        (),
-                                        y, x, z)
-                #print "creaeting in %d %d %d" % (x, y, z)
-
-        self.TXML.endScene()
-
 ###
 
 if __name__ == "__main__": # if run standalone
+    import MeshGenerator
+    import TerrainGenerator
+
     # By a default test case we shall run an embedded world generator script to create a simple
     # world with terrain and a few objects in it. Feel free to rewrite the generator using
     # world generator primitives, by yourself.
     world = WorldGenerator()
-    world.generateworld(32, 32)
+    mesh = MeshGenerator.MeshGenerator()
+    terrain = TerrainGenerator.TerrainGenerator()
+
+    width = 32
+    height = 32
+    assetdir = "./resources/"
+
+    world.TXML.startScene()
+
+    print "Generating a terrain..."
+    terrain.fromDiamondsquare(width, 10, -5, -5, 10)
+    terrain.rescale(-20, 50)
+    terrain.saturate(-5)
+    terrain.toWeightmap(assetdir + "terrain.tga", overwrite=True)
+    terrain.toFile(assetdir + "terrain.ntf", overwrite=True)
+
+    world.create_terrain("local://", ("terrainweighted2.material",), "terrain.ntf", "", width, height)
+    world.create_waterplane(width*world.cPatchSize, height*world.cPatchSize, -1)
+    world.create_avatar("local://", "avatarapplication.js")
+
+    world.message("Generating a group of meshes to the world...")
+    mesh.createPlane()
+    mesh.toFile(assetdir + "plane.mesh.xml", overwrite=True)
+    for i in range(20):
+        x = random.randint(0, width*world.cPatchSize)
+        y = random.randint(0, height*world.cPatchSize)
+        z = terrain.getHeight(x,y)
+        x = x - width*world.cPatchSize/2
+        y = y - height*world.cPatchSize/2
+        if (z > 2.0) and (z < terrain.getMaxitem()/2.0):
+            world.create_static_mesh("Tree"+str(world.TXML.getCurrentEntityID()),
+                                     "plane.mesh",
+                                     "local://",
+                                     (),
+                                     y, x, z)
+        #print "creaeting in %d %d %d" % (x, y, z)
+
+    world.TXML.endScene()
+    world.toFile("./testworld.txml", overwrite=True)
