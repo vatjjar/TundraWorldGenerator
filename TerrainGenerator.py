@@ -70,8 +70,8 @@ class TerrainGenerator():
 # Terrain file manipulators
 #
 
-    def fromfile(self, filename):
-        """ TerrainGenerator.fromfile(filename)
+    def fromFile(self, filename):
+        """ TerrainGenerator.fromFile(filename)
             - Loads a terrain definition from NTF file into internal table. File can then be further
               processed, with TerrainGenerator internal methods, or directly manipulating
               self.d_array table.
@@ -97,17 +97,23 @@ class TerrainGenerator():
         self.maxvalid = False
         return True
 
-    def tofile(self, filename):
-        """ TerrainGenerator.tofile(filename):
+    def toFile(self, filename, overwrite=False):
+        """ TerrainGenerator.toFile(filename):
             - tofile() writes the current terrain vector into file in a local filesystem. What ever is at the moment
               written in internal data table, is written to the file.
             - output file format is NTF, which is directly loadable by Tundra.
             Return value: True if generator succeeded, otherwise False
         """
         if os.path.exists(filename):
-            self.printerror("Requested output file " + str(filename) + " already exists. Aborting.")
+            if overwrite == False:
+                self.printerror("Requested output file " + str(filename) + " already exists. Aborting.")
+                return False
+            os.remove(filename)
+        try: f = open(filename, "wb")
+        except IOError:
+            self.printerror("Failed to open file " + str(filename) + ". Aborting!")
             return False
-        f = open(filename, "wb")
+
         s_buf = array.array("I")
         s_buf.fromlist([self.width, self.height])
         s_buf.tofile(f)
@@ -123,8 +129,8 @@ class TerrainGenerator():
         f.close()
         return True
 
-    def fromimage(self, imagefile):
-        """ TerrainGenerator.fromimage(imagefile)
+    def fromImage(self, imagefile):
+        """ TerrainGenerator.fromImage(imagefile)
             - fromimage() takes an image file as an input, opens it with PIL, scales the content to match
               requested terrain size, and then uses the image as a height map to create the terrain
             - R, G and B values for each pixels are averaged and used as a height for each individual
@@ -149,8 +155,8 @@ class TerrainGenerator():
 # Terrain algorithms generator
 #
 
-    def fromdiamondsquare(self, size, seed1, seed2, seed3, seed4):
-        """ TerrainGenerator.fromdiamondsquare(size, seed1, seed2, seed3, seed4)
+    def fromDiamondsquare(self, size, seed1, seed2, seed3, seed4):
+        """ TerrainGenerator.fromDiamondsquare(size, seed1, seed2, seed3, seed4)
             - fromdiamondsquare() implements an algorithm which can be used to create simple
               fractal based terrains. The algorithm is described in detail in:
               http://www.gameprogrammer.com/fractal.html
@@ -169,6 +175,7 @@ class TerrainGenerator():
         if sizeispoweroftwo == False:
             self.printerror("Size is not a power of Two or exceed 128")
             return False
+
         self.initialize(size, size)
         w = size*self.cPatchSize
         h = w
@@ -337,17 +344,20 @@ class TerrainGenerator():
         else: # gray rocks
             return 255, 0, 0
 
-    def create_weightmap(self, filename, fileformat="TGA"):
-        """ TerrainGenerator.create_weightmap(filename, fileformat)
-            - create_weightmap() takes the current input terrain vector and creates a texture
+    def toWeightmap(self, filename, fileformat="TGA", overwrite=False):
+        """ TerrainGenerator.toWeightmap(filename, fileformat)
+            - toWeightmap() takes the current input terrain vector and creates a texture
               representing the surface texturing.
             - the algorithm runs through the vector and translates height values into RGB values
               where each RGB value acts as an input for the final terrain shader renderer.
             Return value: True always
         """
         if os.path.exists(filename):
+            if overwrite == False:
+                self.printerror("Requested output file " + str(filename) + " already exists. Aborting.")
+                return False
             os.remove(filename)
-        f = open(filename, "wb")
+
         image = Image.new("RGB", (self.width*self.cPatchSize, self.height*self.cPatchSize))
         data = []
         maxitem = self.get_maxitem()
@@ -356,7 +366,10 @@ class TerrainGenerator():
                 r, g, b = self.height_to_rgb(maxitem, self.d_array[i][j])
                 data.append(r*256*256 + g*256 + b)
         image.putdata(data)
-        image.save(filename, fileformat)
+        try: image.save(filename, fileformat)
+        except IOError:
+            self.printerror("toWeightmap() image save failed to " +str(filename)+ ". IOError.")
+            return False
         return True
 
 #############################################################################
@@ -367,20 +380,20 @@ if __name__ == "__main__": # if run standalone
     terrain = TerrainGenerator(16, 16)
 
     print "Running input/output test"
-    terrain.fromfile("./resources/terrain.ntf")
-    terrain.tofile("./resources/terrain2.ntf")
+    terrain.fromFile("./resources/terrain.ntf")
+    terrain.toFile("./resources/terrain2.ntf", overwrite=True)
 
     print "Running terrain-from-image with rescaling test"
-    terrain.fromimage("./resources/map.png")
+    terrain.fromImage("./resources/map.png")
     terrain.rescale(-20, 50)
     terrain.quantize(8)
-    terrain.tofile("./resources/terrain3.ntf")
+    terrain.toFile("./resources/terrain3.ntf", overwrite=True)
 
     print "Running diamond-square with rescale & saturate + generating weightmap"
-    terrain.fromdiamondsquare(32, 10, -5, -5, 10)
+    terrain.fromDiamondsquare(32, 10, -5, -5, 10)
     terrain.rescale(-20, 50)
     terrain.saturate(-5)
-    terrain.tofile("./resources/terrain4.ntf")
-    terrain.create_weightmap("./resources/terrainweights.tga")
+    terrain.toFile("./resources/terrain4.ntf", overwrite=True)
+    terrain.toWeightmap("./resources/terrainweights.tga", overwrite=True)
 
     print "Done!"
