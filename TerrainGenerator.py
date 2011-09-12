@@ -151,6 +151,34 @@ class TerrainGenerator():
         self.maxvalid = False
         return True
 
+    def toWeightmap(self, filename, fileformat="TGA", overwrite=False):
+        """ TerrainGenerator.toWeightmap(filename, fileformat)
+            - toWeightmap() takes the current input terrain vector and creates a texture
+              representing the surface texturing.
+            - the algorithm runs through the vector and translates height values into RGB values
+              where each RGB value acts as an input for the final terrain shader renderer.
+            Return value: True always
+        """
+        if os.path.exists(filename):
+            if overwrite == False:
+                self.printerror("Requested output file " + str(filename) + " already exists. Aborting.")
+                return False
+            os.remove(filename)
+
+        image = Image.new("RGB", (self.width*self.cPatchSize, self.height*self.cPatchSize))
+        data = []
+        maxitem = self.getMaxitem()
+        for i in range(self.width*self.cPatchSize):
+            for j in range(self.height*self.cPatchSize):
+                r, g, b = self.height_to_rgb(maxitem, self.d_array[i][j])
+                data.append(r*256*256 + g*256 + b)
+        image.putdata(data)
+        try: image.save(filename, fileformat)
+        except IOError:
+            self.printerror("toWeightmap() image save failed to " +str(filename)+ ". IOError.")
+            return False
+        return True
+
 #############################################################################
 # Terrain algorithms generator
 #
@@ -231,8 +259,8 @@ class TerrainGenerator():
               force it into certain numerical range.
             Return value: True always
         """
-        minitem = self.get_minitem()
-        maxitem = self.get_maxitem()
+        minitem = self.getMinitem()
+        maxitem = self.getMaxitem()
         for i in range(self.width*self.cPatchSize):
             for j in range(self.height*self.cPatchSize):
                 self.d_array[i][j] = (self.d_array[i][j]-minitem) * (maxlimit-minlimit)/(maxitem-minitem) + minlimit
@@ -250,8 +278,8 @@ class TerrainGenerator():
             - Input parameter level tells into how many levels the current terrain need to be quantized.
             Return value: True always
         """
-        minitem = self.get_minitem()
-        maxitem = self.get_maxitem()
+        minitem = self.getMinitem()
+        maxitem = self.getMaxitem()
         threshold = (maxitem-minitem)/level
         for i in range(self.width*self.cPatchSize):
             for j in range(self.height*self.cPatchSize):
@@ -285,9 +313,9 @@ class TerrainGenerator():
 # Terrain helper methods
 #
 
-    def get_minitem(self):
-        """ TerrainGenerator.get_minitem()
-            - get_minitem() is a helper method which will seek the current minimum value from
+    def getMinitem(self):
+        """ TerrainGenerator.getMinitem()
+            - getMinitem() is a helper method which will seek the current minimum value from
               the terrain vector. Its purpose is to act as a helper method for the actual algorithms
             - the actual value is cached and invalidated when seen fit. This is to speed up
               algorithms which take a heavy use of this method.
@@ -303,9 +331,9 @@ class TerrainGenerator():
         self.minvalid = True
         return self.minitem
 
-    def get_maxitem(self):
-        """ TerrainGenerator.get_maxitem()
-            - get_maxitem() is a helper method which will seek the current maximum value from
+    def getMaxitem(self):
+        """ TerrainGenerator.getMaxitem()
+            - getMaxitem() is a helper method which will seek the current maximum value from
               the terrain vector. Its purpose is to act as a helper method for the actual algorithms
             - the actual value is cached and invalidated when seen fit. This is to speed up
               algorithms which take a heavy use of this method.
@@ -321,9 +349,9 @@ class TerrainGenerator():
         self.maxvalid = True
         return self.maxitem
 
-    def get_height(self, x, y):
-        """ TerrainGenerator.get_height(x, y)
-            - get_height() returns the current height value from requested node.
+    def getHeight(self, x, y):
+        """ TerrainGenerator.getHeight(x, y)
+            - getHeight() returns the current height value from requested node.
             - input taken as x,y coordinate pair to the 2-dimensional terrain vector.
             Return value: True if successful, otherwise False
         """
@@ -343,34 +371,6 @@ class TerrainGenerator():
             return 0, 255, 0
         else: # gray rocks
             return 255, 0, 0
-
-    def toWeightmap(self, filename, fileformat="TGA", overwrite=False):
-        """ TerrainGenerator.toWeightmap(filename, fileformat)
-            - toWeightmap() takes the current input terrain vector and creates a texture
-              representing the surface texturing.
-            - the algorithm runs through the vector and translates height values into RGB values
-              where each RGB value acts as an input for the final terrain shader renderer.
-            Return value: True always
-        """
-        if os.path.exists(filename):
-            if overwrite == False:
-                self.printerror("Requested output file " + str(filename) + " already exists. Aborting.")
-                return False
-            os.remove(filename)
-
-        image = Image.new("RGB", (self.width*self.cPatchSize, self.height*self.cPatchSize))
-        data = []
-        maxitem = self.get_maxitem()
-        for i in range(self.width*self.cPatchSize):
-            for j in range(self.height*self.cPatchSize):
-                r, g, b = self.height_to_rgb(maxitem, self.d_array[i][j])
-                data.append(r*256*256 + g*256 + b)
-        image.putdata(data)
-        try: image.save(filename, fileformat)
-        except IOError:
-            self.printerror("toWeightmap() image save failed to " +str(filename)+ ". IOError.")
-            return False
-        return True
 
 #############################################################################
 
