@@ -17,7 +17,6 @@ class OgreXMLOutput():
     """
     def __init__(self):
         self.indent = 0
-        self.entity_id = 0
         self.resetOutputXML()
 
 #############################################################################
@@ -37,6 +36,7 @@ class OgreXMLOutput():
         if os.path.exists(filename):
             if overwrite == False:
                 sys.stderr.write("OgreXML: ERROR: output file '%s' already exists!\n" % filename)
+                return
             else:
                 os.remove(filename)
         try: file = open(filename, "w")
