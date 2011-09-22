@@ -19,7 +19,6 @@ class WorldGenerator():
     def __init__(self):
         self.cPatchSize = 16
         self.cPatchSize = 16
-        self.terrain = TerrainGenerator.TerrainGenerator()
         self.TXML = TXMLOutput.TXMLOutput()
 
     ### Error logging to stderr ###
