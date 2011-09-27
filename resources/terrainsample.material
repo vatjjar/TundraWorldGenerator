@@ -1,0 +1,71 @@
+material http___www.realxtend.org_world_lvm_LVMTerrain_Weighted.material
+{
+    technique TerrainPCF
+    {
+        pass
+        {
+            ambient 0 0 0 1
+
+            vertex_program_ref Rex/TerrainPCFVS_weighted
+            {
+            }
+
+            fragment_program_ref Rex/TerrainPCFFS_weighted
+            {
+            }
+
+            texture_unit weights
+            {
+                texture_alias weights
+                texture terrainsurfacemap.png
+            }
+
+            texture_unit detail0
+            {
+                texture_alias detail0
+                texture generated_sand.png
+            }
+
+            texture_unit detail1
+            {
+                texture_alias detail1
+                texture generated_grass.png
+            }
+
+            texture_unit detail2
+            {
+                texture_alias detail2
+                texture generated_stone.png
+            }
+
+            texture_unit detail3
+            {
+                texture_alias detail3
+                texture generated_sand.png
+            }
+
+            texture_unit shadowMap0
+            {
+                texture_alias shadowMap0
+                tex_address_mode clamp
+                content_type shadow
+            }
+
+            texture_unit shadowMap1
+            {
+                texture_alias shadowMap1
+                tex_address_mode clamp
+                content_type shadow
+            }
+
+            texture_unit shadowMap2
+            {
+                texture_alias shadowMap2
+                tex_address_mode clamp
+                content_type shadow
+            }
+        }
+
+    }
+
+}
