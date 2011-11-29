@@ -25,7 +25,7 @@ class MeshGenerator():
         self.initialize()
         self.OgreXML = OgreXMLOutput.OgreXMLOutput()
 
-    def initialize(self, vertices=1, faces=1, texcoords=1, normals=1):
+    def initialize(self, vertices=3, faces=1, texcoords=3, normals=1):
         """ MeshGenerator.initialize():
         """
         self.n_vertices = vertices;
@@ -40,7 +40,7 @@ class MeshGenerator():
         return True
 
 #############################################################################
-# Mesh textual output methods
+# Mesh textual and file I/O methods
 #
 
     def printmessage(self, message):
@@ -48,6 +48,15 @@ class MeshGenerator():
 
     def printerror(self, message):
         sys.stderr.write("ERROR: " + str(message) + "\n")
+
+    def tryFileOpen(self, filename, overwrite=False):
+        if os.path.exists(filename):
+            if overwrite == False:
+                raise IOError
+            else:
+                os.remove(filename)
+        file = open(filename, "w")
+        return file
 
 #############################################################################
 # File I/O
@@ -76,6 +85,64 @@ class MeshGenerator():
         self.OgreXML.endMesh()
         self.OgreXML.toFile(filename, overwrite)
         return True
+
+    def toTextFile(self, filename, overwrite=False):
+        """ MeshGenerator->toTextFile(filename, overwrite=False): Output mesh into textual (simple) files
+            - toTextFile() method outputs generated gemoetry into a bunch of textual files, which
+              can be read in a simplified fashion, line-by-line, by scripts and simple test programs
+            - filename with extensions: ".faces", ".vertices", ".normals", ".texcoords" are provided
+        """
+
+        # Faces:
+        try: file = self.tryFileOpen(filename+".faces", overwrite)
+        except IOError:
+            sys.stderr.write("ERROR: Unable to open '%s'\n" % (filename+".faces"))
+            return
+        output = ""
+        for i in range(self.n_faces):
+            output += ("%d\n" % (self.a_faces[i, 0]))
+            output += ("%d\n" % (self.a_faces[i, 1]))
+            output += ("%d\n" % (self.a_faces[i, 2]))
+        file.write(output)
+        file.close()
+
+        # Vertices:
+        try: file = self.tryFileOpen(filename+".vertices", overwrite)
+        except IOError:
+            sys.stderr.write("ERROR: Unable to open '%s'\n" % (filename+".vertices"))
+            return
+        output = ""
+        for i in range(self.n_vertices):
+            output += ("%f\n" % (self.a_vertices[i, 0]))
+            output += ("%f\n" % (self.a_vertices[i, 1]))
+            output += ("%f\n" % (self.a_vertices[i, 2]))
+        file.write(output)
+        file.close()
+
+        # Normals:
+        try: file = self.tryFileOpen(filename+".normals", overwrite)
+        except IOError:
+            sys.stderr.write("ERROR: Unable to open '%s'\n" % (filename+".normals"))
+            return
+        output = ""
+        for i in range(self.n_normals):
+            output += ("%f\n" % (self.a_normals[i, 0]))
+            output += ("%f\n" % (self.a_normals[i, 1]))
+            output += ("%f\n" % (self.a_normals[i, 2]))
+        file.write(output)
+        file.close()
+
+        # Texcoords:
+        try: file = self.tryFileOpen(filename+".texcoords", overwrite)
+        except IOError:
+            sys.stderr.write("ERROR: Unable to open '%s'\n" % (filename+".texcoords"))
+            return
+        output = ""
+        for i in range(self.n_texcoords):
+            output += ("%f\n" % (self.a_texcoords[i, 0]))
+            output += ("%f\n" % (self.a_texcoords[i, 1]))
+        file.write(output)
+        file.close()
 
 #############################################################################
 # Procedural primitive creators
@@ -162,4 +229,5 @@ class MeshGenerator():
 if __name__ == "__main__": # if run standalone
     mesh = MeshGenerator()
     mesh.createPlane(LOD=5)
-    mesh.toFile("plane.mesh.xml")
+    mesh.toFile("Plane.mesh.xml", overwrite=True)
+    mesh.toTextFile("Plane", overwrite=True)
