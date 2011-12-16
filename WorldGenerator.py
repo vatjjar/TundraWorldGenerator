@@ -105,7 +105,7 @@ class WorldGenerator():
         self.TXML.startEntity()
         self.create_component_name("terrain"+str(self.TXML.getCurrentEntityID()), "", "false")
         self.TXML.startComponent("EC_Terrain", "1")
-        self.TXML.createAttribute("Transform", "-"+str(width*8)+",-"+str(height*8)+",0,0,0,0,1,1,1")
+        self.TXML.createAttribute("Transform", "-"+str(width*8)+",0,-"+str(height*8)+",0,0,0,1,1,1")
         self.TXML.createAttribute("Grid Width", str(width))
         self.TXML.createAttribute("Grid Height", str(height))
         self.TXML.createAttribute("Tex. U scale", "0.129999995")
@@ -159,6 +159,7 @@ class WorldGenerator():
 if __name__ == "__main__": # if run standalone
     import MeshGenerator
     import TerrainGenerator
+    import TextureGenerator
 
     # By a default test case we shall run an embedded world generator script to create a simple
     # world with terrain and a few objects in it. Feel free to rewrite the generator using
@@ -166,6 +167,7 @@ if __name__ == "__main__": # if run standalone
     world = WorldGenerator()
     mesh = MeshGenerator.MeshGenerator()
     terrain = TerrainGenerator.TerrainGenerator()
+    texture = TextureGenerator.TextureGenerator()
 
     width = 32
     height = 32
@@ -173,14 +175,24 @@ if __name__ == "__main__": # if run standalone
 
     world.TXML.startScene()
 
+    print "Generating grass texture..."
+    texture.createSingleColorTexture(30,100,30,50)
+    texture.toImage("./resources/generated_grass.png", "PNG", overwrite=True)
+    print "Generating stone texture..."
+    texture.createSingleColorTexture(90,83,73,50)
+    texture.toImage("./resources/generated_stone.png", "PNG", overwrite=True)
+    print "Generating sand texture..."
+    texture.createSingleColorTexture(160,136,88,70)
+    texture.toImage("./resources/generated_sand.png", "PNG", overwrite=True)
+
     print "Generating a terrain..."
     terrain.fromDiamondsquare(width, 10, -5, -5, 10)
     terrain.rescale(-20, 50)
     terrain.saturate(-5)
-    terrain.toWeightmap(assetdir + "terrain.tga", overwrite=True)
+    terrain.toWeightmap(assetdir + "terrainsurfacemap.png", overwrite=True)
     terrain.toFile(assetdir + "terrain.ntf", overwrite=True)
 
-    world.create_terrain("local://", ("terrainweighted2.material",), "terrain.ntf", "", width, height)
+    world.create_terrain("local://", ("terrainsample.material",), "terrain.ntf", "", width, height)
     world.create_waterplane(width*world.cPatchSize, height*world.cPatchSize, -1)
     world.create_avatar("local://", "avatarapplication.js")
 
@@ -203,3 +215,4 @@ if __name__ == "__main__": # if run standalone
 
     world.TXML.endScene()
     world.toFile("./testworld.txml", overwrite=True)
+
