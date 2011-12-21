@@ -195,14 +195,8 @@ class TerrainGenerator():
               for the generator.
             Return value: True if generator succeeded, otherwise False
         """
-        sizeispoweroftwo = False
-        for i in (1, 2, 4, 8, 16, 32, 64, 128):
-            if size == i:
-                sizeispoweroftwo = True
-                break
-        if sizeispoweroftwo == False:
-            self.printerror("Size is not a power of Two or exceed 128")
-            return False
+        if False == self.__sizeIsPowerOfTwo(size):
+            return False;
 
         self.initialize(size, size)
         w = size*self.cPatchSize
@@ -246,6 +240,31 @@ class TerrainGenerator():
             randrange = randrange / 2
         self.minvalid = False
         self.maxvalid = False
+        return True
+
+    def fromEnvelope(self, size, envelope):
+        """ TerrainGenerator.fromEnvelope(size, envelope)
+            - fromEnvelope() method loops through the desired terrain array of floats
+              and calls the envelope function for each node in the terrain soil to solve
+              the particular height value.
+            - Current X and Y coordinates are passed as a parameter to the envelope function
+              which can then be used by what ever algorithm to determine the height value
+            - Both envelope params are floats and it is assumed that the envelope returns
+              a float, which is used directly-
+            - input params for the envelope are mapped to [-1, 1] for both X and Y directions
+              hence the envelope can assume all input X,Y pairs to fall into this area.
+            Return value: True if generator succeeded, otherwise False
+        """
+        if False == self.__sizeIsPowerOfTwo(size):
+            return False;
+
+        self.initialize(size, size)
+        w = size*self.cPatchSize
+        h = w
+
+        for i in range(h):
+            for j in range(w):
+                self.d_array[j][i] = envelope(float(2.0*i/(h-1)-1.0), float(2.0*j/(h-1)-1.0))
         return True
 
 #############################################################################
@@ -313,6 +332,14 @@ class TerrainGenerator():
 # Terrain helper methods
 #
 
+    def __sizeIsPowerOfTwo(self, size):
+        sizeispoweroftwo = False
+        for i in (1, 2, 4, 8, 16, 32, 64, 128):
+            if size == i: return True
+        if sizeispoweroftwo == False:
+            self.printerror("Size is not a power of Two or exceed 128")
+            return False
+
     def getMinitem(self):
         """ TerrainGenerator.getMinitem()
             - getMinitem() is a helper method which will seek the current minimum value from
@@ -367,7 +394,7 @@ class TerrainGenerator():
         """
         if height < 0.5: # Sand brown
             return 0, 0, 255
-        elif height < float(random.randint(maxitem/2-2, maxitem/2+2)): # grass
+        elif height < float(random.randint(int(maxitem/2-2), int(maxitem/2+2))): # grass
             return 0, 255, 0
         else: # gray rocks
             return 255, 0, 0
