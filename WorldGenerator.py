@@ -54,7 +54,7 @@ class WorldGenerator():
         self.TXML.startComponent("EC_Name", "1")
         self.TXML.createAttribute("name", str(name))
         self.TXML.createAttribute("description", str(description))
-        self.TXML.createAttribute("user-defined", str(userdefined))
+        #self.TXML.createAttribute("user-defined", str(userdefined))
         self.TXML.endComponent()
 
     def create_component_placeable(self, transform):
@@ -76,11 +76,11 @@ class WorldGenerator():
             if i != len(materials)-1: m_str = m_str + ";"
         return m_str
 
-    def create_static_mesh(self, name, mesh, reference, materials, center_x, center_y, center_z=0.0):
+    def create_static_mesh(self, name, mesh, reference, materials, center_x, center_y, center_z=0.0, transform="0,0,0,90,0,180,1,1,1"):
         self.TXML.startEntity()
         # Mesh component
         self.TXML.startComponent("EC_Mesh", "1")
-        self.TXML.createAttribute("Transform", "0,0,0,90,0,180,1,1,1")
+        self.TXML.createAttribute("Transform", transform)
         self.TXML.createAttribute("Mesh ref", str(reference) + str(mesh))
         self.TXML.createAttribute("Skeleton ref", "")
         self.TXML.createAttribute("Mesh materials", self.insert_materials(reference, materials))
@@ -151,6 +151,25 @@ class WorldGenerator():
         self.TXML.createAttribute("Fog start dist.", "100")
         self.TXML.createAttribute("Fog end dist.", "2000")
         self.TXML.createAttribute("Fog mode", "3")
+        self.TXML.endComponent()
+        self.TXML.endEntity()
+
+    def create_sky(self):
+        self.TXML.startEntity()
+        self.create_component_name("Sky"+str(self.TXML.getCurrentEntityID()), "", "false")
+        self.TXML.startComponent("EC_EnvironmentLight", "1")
+        self.TXML.createAttribute("Sunlight color", "0.638999999 0.638999999 0.638999999 1")
+        self.TXML.createAttribute("Ambient light color", "0.363999993 0.363999993 0.363999993 1")
+        self.TXML.createAttribute("Sunlight diffuse color", "0.930000007 0.930000007 0.930000007 1")
+        self.TXML.createAttribute("Sunlight direction vector", "-1.000000 -1.000000 -1.000000")
+        self.TXML.createAttribute("Sunlight cast shadows", "true")
+        self.TXML.endComponent()
+        self.TXML.startComponent("EC_Sky", "1")
+        self.TXML.createAttribute("Material", "RexSkyBox")
+        self.TXML.createAttribute("Texture", "rex_sky_front.dds;rex_sky_back.dds;rex_sky_left.dds;rex_sky_right.dds;rex_sky_top.dds;rex_sky_bot.dds")
+        self.TXML.createAttribute("Distance", "50")
+        self.TXML.createAttribute("Orientation", "0.000000 0.000000 0.000000 1.000000")
+        self.TXML.createAttribute("Draw first", "true")
         self.TXML.endComponent()
         self.TXML.endEntity()
 
