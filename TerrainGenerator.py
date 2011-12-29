@@ -129,12 +129,12 @@ class TerrainGenerator():
         f.close()
         return True
 
-    def fromImage(self, imagefile):
-        """ TerrainGenerator.fromImage(imagefile)
+    def fromSurfaceImage(self, imagefile):
+        """ TerrainGenerator.fromSurfaceImage(imagefile)
             - fromimage() takes an image file as an input, opens it with PIL, scales the content to match
               requested terrain size, and then uses the image as a height map to create the terrain
             - R, G and B values for each pixels are averaged and used as a height for each individual
-              node in the terrain.
+              node in the terrain. The values are used directly, i.e. from zero to 255.
             Return value: True if file input succeeded, otherwise False
         """
         try: image = Image.open(imagefile)
@@ -149,6 +149,42 @@ class TerrainGenerator():
                 self.d_array[i][j] = (pixels[i,j][0] + pixels[i,j][1] + pixels[i,j][2]) / 3.0
         self.minvalid = False
         self.maxvalid = False
+        return True
+
+    def toSurfaceImage(self, filename, fileformat="PNG", overwrite=False):
+        """ TerrainGenerator.toSurfaceImage(imagefile)
+            - toSurfaceMap() outputs the currently generated terrain into an RGB picture containing
+              normalized height of each node in the terrain. Single pixel corresponds to single
+              height value and is stored in grayscale RGB value. Height values are normalized to
+              range of 0-255 before storing to gain maximum dynamics for the terrain.
+            - RGB may be an overkill. Maybe single value grayscale image would be more elegant way
+              to store the information
+            Return value: True if file input succeeded, otherwise False
+        """
+        if os.path.exists(filename):
+            if overwrite == False:
+                self.printerror("Requested output file " + str(filename) + " already exists. Aborting.")
+                return False
+            os.remove(filename)
+
+        image = Image.new("RGB", (self.width*self.cPatchSize, self.height*self.cPatchSize))
+
+        data = []
+        minitem = self.getMinitem()
+        maxitem = self.getMaxitem()
+        scalefactor = 255.0 / (maxitem - minitem)
+        for i in range(self.width*self.cPatchSize):
+            for j in range(self.height*self.cPatchSize):
+                # Here we need j,i orientation because PIL pixel orientation differs from our
+                # internal presentation
+                value = (self.d_array[j][i] - minitem) * scalefactor
+                ivalue = int(value)
+                data.append(ivalue*256*256 + ivalue*256 + ivalue)
+        image.putdata(data)
+        try: image.save(filename, fileformat)
+        except IOError:
+            self.printerror("toWeightmap() image save failed to " +str(filename)+ ". IOError.")
+            return False
         return True
 
     def toWeightmap(self, filename, fileformat="TGA", overwrite=False):
@@ -170,7 +206,7 @@ class TerrainGenerator():
         maxitem = self.getMaxitem()
         for i in range(self.width*self.cPatchSize):
             for j in range(self.height*self.cPatchSize):
-                r, g, b = self.height_to_rgb(maxitem, self.d_array[i][j])
+                r, g, b = self.height_to_rgb(self.d_array[i][j], limit1=0.5, limit2=maxitem/2, variance=2)
                 data.append(r*256*256 + g*256 + b)
         image.putdata(data)
         try: image.save(filename, fileformat)
@@ -189,7 +225,7 @@ class TerrainGenerator():
               fractal based terrains. The algorithm is described in detail in:
               http://www.gameprogrammer.com/fractal.html
             - The algorithm will require a square shaped vector for storage space. Another
-              requirement for the vector is that its dimensions need to be power of two. The
+              requirement for the vector is that its dimensions need to be a power of two. The
               size of the terrain is at the moment limited to maximum of 128
             - seed[1-4] values are initial float corner values for the terrain and act as a seed
               for the generator.
@@ -384,7 +420,7 @@ class TerrainGenerator():
         """
         return self.d_array[x][y]
 
-    def height_to_rgb(self, maxitem, height):
+    def height_to_rgb(self, height, limit1=0.5, limit2=35.0, variance=2):
         """ TerrainGenerator.height_to_rgb(maxitem, height)
             - height_to_rgb() translates given height value into RGB value with certain thresholds
             - the implementation of this method is merely a test without proper intelligence. Only
@@ -392,16 +428,16 @@ class TerrainGenerator():
             - will be rewritten soon..
             Return value: translated R, G and B values
         """
-        if height < 0.5: # Sand brown
+        if height < float(random.randint(int(limit1-variance), int(limit1+variance))):
             return 0, 0, 255
-        elif height < float(random.randint(int(maxitem/2-2), int(maxitem/2+2))): # grass
+        elif height < float(random.randint(int(limit2-variance), int(limit2+variance))):
             return 0, 255, 0
-        else: # gray rocks
+        else:
             return 255, 0, 0
 
 #############################################################################
 
-if __name__ == "__main__": # if run standalone
+if __name__ == "__main__":
     # If run standalone, we will run a bunch of test cases
 
     terrain = TerrainGenerator(16, 16)
@@ -411,16 +447,17 @@ if __name__ == "__main__": # if run standalone
     terrain.toFile("./resources/terrain2.ntf", overwrite=True)
 
     print "Running terrain-from-image with rescaling test"
-    terrain.fromImage("./resources/map.png")
+    terrain.fromSurfaceImage("./resources/map.png")
     terrain.rescale(-20, 50)
     terrain.quantize(8)
     terrain.toFile("./resources/terrain3.ntf", overwrite=True)
+    terrain.toSurfaceImage("./resources/terrainsurfaceimage.png", fileformat="PNG", overwrite=True)
 
     print "Running diamond-square with rescale & saturate + generating weightmap"
     terrain.fromDiamondsquare(32, 10, -5, -5, 10)
     terrain.rescale(-20, 50)
     terrain.saturate(-5)
     terrain.toFile("./resources/terrain4.ntf", overwrite=True)
-    terrain.toWeightmap("./resources/terrainweights.tga", overwrite=True)
+    terrain.toWeightmap("./resources/terrainweights.tga", fileformat="TGA", overwrite=True)
 
     print "Done!"

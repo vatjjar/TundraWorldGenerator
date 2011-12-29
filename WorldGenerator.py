@@ -50,20 +50,22 @@ class WorldGenerator():
         self.TXML.createAttribute("Angular velocity", "0 0 0")
         self.TXML.endComponent()
 
-    def create_component_name(self, name, description, userdefined):
+    def create_component_name(self, name, description):
         self.TXML.startComponent("EC_Name", "1")
         self.TXML.createAttribute("name", str(name))
         self.TXML.createAttribute("description", str(description))
-        #self.TXML.createAttribute("user-defined", str(userdefined))
         self.TXML.endComponent()
 
-    def create_component_placeable(self, transform):
+    def create_component_placeable(self, transform="0,0,0,0,0,180,1,1,1"):
         self.TXML.startComponent("EC_Placeable", "1")
-        self.TXML.createAttribute("Position", "0 0 0")
-        self.TXML.createAttribute("Scale", "0 0 0")
+        #self.TXML.createAttribute("Position", "0 0 0")
+        #self.TXML.createAttribute("Scale", "0 0 0")
         self.TXML.createAttribute("Transform", str(transform))
         self.TXML.createAttribute("Show bounding box", "false")
         self.TXML.createAttribute("Visible", "true")
+        self.TXML.createAttribute("Selection layer", "1")
+        self.TXML.createAttribute("Parent entity ref", "")
+        self.TXML.createAttribute("Parent bone name", "")
         self.TXML.endComponent()
 
     ### Logical components for the world
@@ -76,11 +78,11 @@ class WorldGenerator():
             if i != len(materials)-1: m_str = m_str + ";"
         return m_str
 
-    def create_static_mesh(self, name, mesh, reference, materials, center_x, center_y, center_z=0.0, transform="0,0,0,90,0,180,1,1,1"):
+    def create_static_mesh(self, name, mesh, reference, materials, transform="0,0,0,0,0,180,1,1,1"):
         self.TXML.startEntity()
         # Mesh component
         self.TXML.startComponent("EC_Mesh", "1")
-        self.TXML.createAttribute("Transform", transform)
+        self.TXML.createAttribute("Transform", "0,0,0,00,0,180,1,1,1")
         self.TXML.createAttribute("Mesh ref", str(reference) + str(mesh))
         self.TXML.createAttribute("Skeleton ref", "")
         self.TXML.createAttribute("Mesh materials", self.insert_materials(reference, materials))
@@ -88,22 +90,23 @@ class WorldGenerator():
         self.TXML.createAttribute("Cast shadows", "true")
         self.TXML.endComponent()
         # Name -component
-        self.create_component_name(str(name), "", "false")
+        self.create_component_name(str(name), "")
         # Placeable -component
-        self.TXML.startComponent("EC_Placeable", "1")
-        self.TXML.createAttribute("Position", "0 0 0")
-        self.TXML.createAttribute("Scale", "0 0 0")
-        self.TXML.createAttribute("Transform", str(center_x)+","+str(center_y)+","+str(center_z)+",0,0,180,1,1,1")
-        self.TXML.createAttribute("Show bounding box", "false")
-        self.TXML.createAttribute("Visible", "true")
-        self.TXML.endComponent()
+        self.create_component_placeable(transform)
+        #self.TXML.startComponent("EC_Placeable", "1")
+        #self.TXML.createAttribute("Position", "0 0 0")
+        #self.TXML.createAttribute("Scale", "0 0 0")
+        #self.TXML.createAttribute("Transform", transform)
+        #self.TXML.createAttribute("Show bounding box", "false")
+        #self.TXML.createAttribute("Visible", "true")
+        #self.TXML.endComponent()
         # Rigidbody -component
         #self.create_component_rigidbody(reference, "1", "4", mesh)
         self.TXML.endEntity()
 
     def create_terrain(self, reference, materials, heightmap, collision, width, height):
         self.TXML.startEntity()
-        self.create_component_name("terrain"+str(self.TXML.getCurrentEntityID()), "", "false")
+        self.create_component_name("terrain"+str(self.TXML.getCurrentEntityID()), "")
         self.TXML.startComponent("EC_Terrain", "1")
         self.TXML.createAttribute("Transform", "-"+str(width*8)+",0,-"+str(height*8)+",0,0,0,1,1,1")
         self.TXML.createAttribute("Grid Width", str(width))
@@ -122,18 +125,35 @@ class WorldGenerator():
         self.TXML.endEntity()
 
     def create_avatar(self, reference, script):
+        #<entity id="2" sync="1">
+        # <component type="EC_Script" sync="1">
+        #  <attribute value="avatarapplication.js;simpleavatar.js;exampleavataraddon.js" name="Script ref"/>
+        #  <attribute value="true" name="Run on load"/>
+        #  <attribute value="0" name="Run mode"/>
+        #  <attribute value="AvatarApp" name="Script application name"/>
+        #  <attribute value="" name="Script class name"/>
+        # </component>
+        # <component type="EC_Name" sync="1">
+        #  <attribute value="AvatarApp" name="name"/>
+        #  <attribute value="" name="description"/>
+        # </component>
+        #</entity>
         self.TXML.startEntity()
         self.TXML.startComponent("EC_Script", "1")
-        self.TXML.createAttribute("Type", "js")
+        self.TXML.createAttribute("Script ref", str(script))
         self.TXML.createAttribute("Run on load", "true")
-        self.TXML.createAttribute("Script ref", str(reference) + str(script))
+        self.TXML.createAttribute("Run mode", "0")
+        self.TXML.createAttribute("Script application name", "AvatarApp")
+        self.TXML.createAttribute("Script class name", "")
+        #self.TXML.createAttribute("Type", "js")
+        #self.TXML.createAttribute("Script ref", str(reference) + str(script))
         self.TXML.endComponent()
-        self.create_component_name("AvatarScript"+str(self.TXML.getCurrentEntityID()), "", "false")
+        self.create_component_name("AvatarApp"+str(self.TXML.getCurrentEntityID()), "")
         self.TXML.endEntity()
 
     def create_waterplane(self, width, height, level):
         self.TXML.startEntity()
-        self.create_component_name("WaterPlane"+str(self.TXML.getCurrentEntityID()), "", "false")
+        self.create_component_name("WaterPlane"+str(self.TXML.getCurrentEntityID()), "")
         self.create_component_placeable("0,0,"+str(level)+",0,0,0,1,1,1")
         self.TXML.startComponent("EC_WaterPlane", "1")
         self.TXML.createAttribute("x-size", str(width))
@@ -156,7 +176,7 @@ class WorldGenerator():
 
     def create_sky(self):
         self.TXML.startEntity()
-        self.create_component_name("Sky"+str(self.TXML.getCurrentEntityID()), "", "false")
+        self.create_component_name("Sky"+str(self.TXML.getCurrentEntityID()), "")
         self.TXML.startComponent("EC_EnvironmentLight", "1")
         self.TXML.createAttribute("Sunlight color", "0.638999999 0.638999999 0.638999999 1")
         self.TXML.createAttribute("Ambient light color", "0.363999993 0.363999993 0.363999993 1")
@@ -172,6 +192,27 @@ class WorldGenerator():
         self.TXML.createAttribute("Draw first", "true")
         self.TXML.endComponent()
         self.TXML.endEntity()
+
+    def create_freelookcameraspawnpos(self, transform):
+        self.TXML.startEntity()
+        self.create_component_name("FreeLookCameraSpawnPos", "")
+        self.create_component_placeable(transform)
+        self.TXML.endEntity()
+        #<entity id="7" sync="1">
+        # <component type="EC_Placeable" sync="1">
+        #  <attribute value="1.07871,16.6713,35.9556,-33.9,-0.60001,0,1,1,1" name="Transform"/>
+        #  <attribute value="false" name="Show bounding box"/>
+        #  <attribute value="true" name="Visible"/>
+        #  <attribute value="1" name="Selection layer"/>
+        #  <attribute value="" name="Parent entity ref"/>
+        #  <attribute value="" name="Parent bone name"/>
+        # </component>
+        # <component type="EC_Name" sync="1">
+        #  <attribute value="FreeLookCameraSpawnPos" name="name"/>
+        #  <attribute value="" name="description"/>
+        # </component>
+        #</entity>
+        return
 
 ###
 
