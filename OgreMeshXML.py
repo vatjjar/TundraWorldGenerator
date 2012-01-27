@@ -180,49 +180,47 @@ class OgreXMLImport():
         p.setContentHandler(ogreparser)
         p.parse(localfile)
 
-    def toFile(self, localfile):
-        f = open(localfile, "w")            # at this point, no exception checking. We'll let them to passthrough
-        f.write("<mesh>\n")
+    def toFile(self, localfile, overwrite=False):
+        mesh = self.OgreXMLExport(localfile, overwrite)
+        mesh.startMesh()
         if self.meshcontainer.sharedgeometry != None:
             print "Fixme, sharedvertice export TBD"
             pass                            # Todo: add sharedgeometry suppot
         if len(self.meshcontainer.submeshes) > 0:
-            f.write("<submeshes>\n")
-            for mesh in self.meshcontainer.submeshes:
+            mesh.startSubmeshes()
+            for m in self.meshcontainer.submeshes:
                 longIndices = False
-                if len(mesh.vertexBuffer.vertices) > 32765: longIndices = True
-                f.write("<submesh material=\"%s\" usesharedvertices=\"%s\" use32bitindices=\"%s\" operation_type=\"%s\">\n" %
-                        ("", False, longIndices, "triangle_list"))
+                if len(m.vertexBuffer.vertices) > 32765: longIndices = True
+                mesh.startSubmesh("", False, longIndices, "triangle_list")
 
-                f.write("<faces count=\"%d\">\n" % (len(mesh.faces)/3))
-                for i in [mesh.faces[x:x+3] for x in xrange(0, len(mesh.faces), 3)]:
-                    f.write("<face v1=\"%d\" v2=\"%d\" v3=\"%d\"/>\n" % (i[0], i[1], i[2]))
-                f.write("</faces>\n");
+                mesh.startFaces(len(m.faces)/3)
+                for i in [m.faces[x:x+3] for x in xrange(0, len(m.faces), 3)]:
+                    mesh.outputFace(i[0], i[1], i[2])
+                mesh.endFaces()
 
-                f.write("<geometry vertexcount=\"%d\">\n" % (len(mesh.vertexBuffer.vertices)/3))
-                vVector = [mesh.vertexBuffer.vertices[x:x+3] for x in xrange(0, len(mesh.vertexBuffer.vertices), 3)]
-                nVector = [mesh.vertexBuffer.normals[x:x+3] for x in xrange(0, len(mesh.vertexBuffer.normals), 3)]
-                tVector = [mesh.vertexBuffer.texcoords[x:x+2] for x in xrange(0, len(mesh.vertexBuffer.texcoords), 2)]
-                f.write("<vertexbuffer positions=\"%s\" normals=\"%s\" texture_coords=\"%d\" texture_coord_dimensions=\"2\">\n" %
-                        ((len(vVector) != 0), (len(nVector) != 0), (len(tVector) != 0)))
+                mesh.startGeometry(len(m.vertexBuffer.vertices)/3)
+                vVector = [m.vertexBuffer.vertices[x:x+3] for x in xrange(0, len(m.vertexBuffer.vertices), 3)]
+                nVector = [m.vertexBuffer.normals[x:x+3] for x in xrange(0, len(m.vertexBuffer.normals), 3)]
+                tVector = [m.vertexBuffer.texcoords[x:x+2] for x in xrange(0, len(m.vertexBuffer.texcoords), 2)]
+                mesh.startVertexbuffer((len(vVector) != 0), (len(nVector) != 0), (len(tVector) != 0))
 
                 counter = 0
-                while counter < len(mesh.vertexBuffer.vertices)/3:
-                    f.write("<vertex>\n")
-                    f.write("<position x=\"%f\" y=\"%f\" z=\"%f\"/>\n"  % (vVector[counter][0], vVector[counter][1], vVector[counter][2]))
+                while counter < len(m.vertexBuffer.vertices)/3:
+                    mesh.startVertex()
+                    mesh.outputPosition(vVector[counter][0], vVector[counter][1], vVector[counter][2])
                     if len(nVector) > 0:
-                        f.write("<normal x=\"%f\" y=\"%f\" z=\"%f\"/>\n"    % (nVector[counter][0], nVector[counter][1], nVector[counter][2]))
+                        mesh.outputNormal(nVector[counter][0], nVector[counter][1], nVector[counter][2])
                     if len(nVector) > 0:
-                        f.write("<texcoord u=\"%f\" v=\"%f\"/>\n"           % (tVector[counter][0], tVector[counter][1]))
-                    f.write("</vertex>\n")
+                        mesh.outputTexcoord(tVector[counter][0], tVector[counter][1])
+                    mesh.endVertex()
                     counter += 1
 
-                f.write("</vertexbuffer>\n")
-                f.write("</geometry>\n")
-                f.write("</submesh>\n")
-            f.write("</submeshes>\n")
-        f.write("</mesh>\n")
-        f.close()
+                mesh.endVertexbuffer()
+                mesh.endGeometry()
+                mesh.endSubmesh()
+            mesh.endSubmeshes()
+        mesh.endMesh()
+        mesh.closeOutputXML()
 
     ###
     # OgreXMLImport: tools
@@ -231,7 +229,7 @@ class OgreXMLImport():
         self.meshcontainer.printStatistics()
 
     ###
-    # OgreXMLImport: XML parser class for OgreXML fileformat:
+    # OgreXMLImport: XMLParser: XML parser class for OgreXML fileformat:
     #
     class XMLParser(xml.sax.ContentHandler):
         def setMeshContainer(self, container):
@@ -352,6 +350,145 @@ class OgreXMLImport():
             if tag == "skeletonlink":         return self.__end_skeletonlink()
             if tag == "submeshnames":         return self.__end_submeshnames()
             if tag == "submeshname":          return self.__end_submeshname()
+
+    ###
+    # OgreXMLImport: OgreXMLExport: Ogre XML output class:
+    #
+    class OgreXMLExport():
+        """ class OgreXMLExport(): I/O component for writing formatted OgreXML notation
+            - Primarily used by MeshGenerator for producing Ogre compliant XML mesh
+              notation.
+            - All XML requests are pushed into buffer, and once toFile method is called
+              the contents are flushes to the desired output file.
+        """
+        def __init__(self, localfile=None, overwrite=False):
+            self.indent = 0
+            self.outputXMLFile = None
+            self.openOutputXML(localfile, overwrite)
+
+        #############################################################################
+        # OgreXMLExport: File I/O and internals
+        #
+        def openOutputXML(self, localfile, overwrite):
+            if os.path.exists(localfile):
+                if overwrite == False:
+                    print ("OgreXMLExport: ERROR: output file '%s' already exists!\n" % filename)
+                    return
+                else:
+                    os.unlink(localfile)
+            try: self.outputXMLFile = open(localfile, "w")
+            except IOError:
+                print ("OgreXMLExport: ERROR: Unable to open file '%s' for writing!" % filename)
+                self.outputXMLFile = None
+
+        def closeOutputXML(self):
+            self.outputXMLFile.close()
+            self.outputXMLFile = None
+
+        def __outputXML(self, msg):
+            if self.outputXMLFile == None:
+                return
+            indent_str = ""
+            for i in range(self.indent):
+                indent_str = indent_str + " "
+            #self.outputXMLbuffer += (indent_str + str(msg) + "\n")
+            self.outputXMLFile.write((indent_str + str(msg) + "\n"))
+            #print indent_str + str(msg)
+
+        def __increaseIndent(self):
+            self.indent += 1
+
+        def __decreaseIndent(self):
+            if self.indent > 0: self.indent -= 1
+
+        #############################################################################
+        # OgreXMLExport: Ogre XML output methods
+        #
+        def startMesh(self):
+            self.__outputXML("<mesh>")
+            self.__increaseIndent()
+
+        def endMesh(self):
+            self.__decreaseIndent()
+            self.__outputXML("</mesh>")
+
+        def startVertexbuffer(self, position=True, normal=True, texcoord=True, tex_dimensions=2):
+            s_out = ""
+            if normal == True:   s_out += "normals=\"true\" "
+            if position == True: s_out += "positions=\"true\" "
+            if texcoord == True:
+                s_out += "texture_coords=\"true\""
+                s_out += "tex_coord_dimensions=\"%d\"" % tex_dimensions
+            self.__outputXML("<vertexbuffer %s>" % s_out)
+            self.__increaseIndent()
+
+        def endVertexbuffer(self):
+            self.__decreaseIndent()
+            self.__outputXML("</vertexbuffer>")
+
+        def startSharedgeometry(self, vertices):
+            self.__outputXML("<sharedgeometry vertexcount=\"" + str(vertices) + "\">")
+            self.__increaseIndent()
+
+        def endSharedgeometry(self):
+            self.__decreaseIndent()
+            self.__outputXML("</sharedgeometry>")
+
+        def startVertex(self):
+            self.__outputXML("<vertex>")
+            self.__increaseIndent()
+
+        def endVertex(self):
+            self.__decreaseIndent()
+            self.__outputXML("</vertex>")
+
+        def startSubmeshes(self):
+            self.__outputXML("<submeshes>")
+            self.__increaseIndent()
+
+        def endSubmeshes(self):
+            self.__decreaseIndent()
+            self.__outputXML("</submeshes>")
+
+        def startSubmesh(self, material, sharedvertices, longindices, operationtype):
+            s_out = "material=\"%s\" " % material
+            s_out += "usesharedvertices=\"%s\" " % sharedvertices
+            s_out += "use32bitindexes=\"%s\" " % longindices
+            s_out += "operationtype=\"%s\"" % operationtype
+            self.__outputXML("<submesh %s>" % s_out)
+            self.__increaseIndent()
+
+        def endSubmesh(self):
+            self.__decreaseIndent()
+            self.__outputXML("</submesh>")
+
+        def startFaces(self, faces):
+            self.__outputXML("<faces count=\""+str(faces)+"\">")
+            self.__increaseIndent()
+
+        def endFaces(self):
+            self.__decreaseIndent()
+            self.__outputXML("</faces>")
+
+        def startGeometry(self, vertices):
+            self.__outputXML("<geometry count=\""+str(vertices)+"\">")
+            self.__increaseIndent()
+
+        def endGeometry(self):
+            self.__decreaseIndent()
+            self.__outputXML("</geometry>")
+
+        def outputPosition(self, x, y, z):
+            self.__outputXML("<position x=\""+str(x)+"\" y=\""+str(y)+"\" z=\""+str(z)+"\"/>")
+
+        def outputNormal(self, x, y, z):
+            self.__outputXML("<normal x=\""+str(x)+"\" y=\""+str(y)+"\" z=\""+str(z)+"\"/>")
+
+        def outputTexcoord(self, u, v):
+            self.__outputXML("<texcoord u=\""+str(u)+"\" v=\""+str(v)+"\"/>")
+
+        def outputFace(self, v1, v2, v3):
+            self.__outputXML("<face v1=\""+str(v1)+"\" v2=\""+str(v2)+"\" v3=\""+str(v3)+"\"/>")
 
 #############################################################################
 # OgreMeshImport class - for importing binary ogre meshes
