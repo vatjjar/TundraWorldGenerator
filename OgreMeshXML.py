@@ -1,4 +1,9 @@
 #!/usr/bin/python
+#
+# Author: Jarkko Vatjus-Anttila <jvatjusanttila@gmail.com>
+#
+# For conditions of distribution and use, see copyright notice in license.txt
+#
 
 import sys, os
 import xml.sax
@@ -24,6 +29,8 @@ class SubMesh():
         self.vertexBuffer.addNormal(n_list)
     def addTexcoord(self, t_list):
         self.vertexBuffer.addTexcoord(t_list)
+    def addDiffuseColor(self, c_list):
+        self.vertexBuffer.addDiffuseColor(c_list)
     def addBoneAssignment(self, b_list):
         self.boneAssignments.addVertexBoneAssignment(b_list)
     def addName(self, name):
@@ -48,12 +55,15 @@ class VertexBuffer():
         self.vertices = []
         self.normals = []
         self.texcoords = []
+        self.diffusecolors = []
     def addVertex(self, v_list):
         for v in v_list: self.vertices.append(v)
     def addNormal(self, n_list):
         for n in n_list: self.normals.append(n)
     def addTexcoord(self, t_list):
         for t in t_list: self.texcoords.append(t)
+    def addDiffuseColor(self, c_list):
+        for c in c_list: self.diffusecolors.append(c)
 
 ####
 # Vertex buffer holds positions, normals and texcoords needed for rendering
@@ -112,6 +122,9 @@ class MeshContainer():
     def addTexcoord(self, t_list):
         try: self.currententity.addTexcoord(t_list)
         except AttributeError: pass
+    def addDiffuseColor(self, c_list):
+        try: self.currententity.addDiffuseColor(c_list)
+        except AttributeError: pass
     def addFace(self, f_list):
         try: self.submeshes[-1].addFace(f_list)
         except IndexError: pass
@@ -154,10 +167,11 @@ class MeshContainer():
         print " Submeshes %d" % (len(self.submeshes))
         for m in self.submeshes:
             print "  Name = %s" % (m.name)
-            print "  Vertices=%d, faces=%d, normal=%d texcoords=%d" % (len(m.vertexBuffer.vertices)/3,
+            print "  Vertices=%d, faces=%d, normal=%d texcoords=%d, diffuse_colors=%d" % (len(m.vertexBuffer.vertices)/3,
                                                                        len(m.faces)/3,
                                                                        len(m.vertexBuffer.normals)/3,
-                                                                       len(m.vertexBuffer.texcoords)/2)
+                                                                       len(m.vertexBuffer.texcoords)/2,
+                                                                       len(m.vertexBuffer.diffusecolors)/3)
 
 #############################################################################
 # OgreXMLImport class
@@ -199,10 +213,11 @@ class OgreXMLImport():
                 mesh.endFaces()
 
                 mesh.startGeometry(len(m.vertexBuffer.vertices)/3)
-                vVector = [m.vertexBuffer.vertices[x:x+3] for x in xrange(0, len(m.vertexBuffer.vertices), 3)]
-                nVector = [m.vertexBuffer.normals[x:x+3] for x in xrange(0, len(m.vertexBuffer.normals), 3)]
+                vVector = [m.vertexBuffer.vertices[x:x+3]  for x in xrange(0, len(m.vertexBuffer.vertices), 3)]
+                nVector = [m.vertexBuffer.normals[x:x+3]   for x in xrange(0, len(m.vertexBuffer.normals), 3)]
                 tVector = [m.vertexBuffer.texcoords[x:x+2] for x in xrange(0, len(m.vertexBuffer.texcoords), 2)]
-                mesh.startVertexbuffer((len(vVector) != 0), (len(nVector) != 0), (len(tVector) != 0))
+                cVector = [m.vertexBuffer.diffusecolors[x:x+3]    for x in xrange(0, len(m.vertexBuffer.diffusecolors), 3)]
+                mesh.startVertexbuffer((len(vVector) != 0), (len(nVector) != 0), (len(tVector) != 0), (len(cVector) != 0))
 
                 counter = 0
                 while counter < len(m.vertexBuffer.vertices)/3:
@@ -212,6 +227,8 @@ class OgreXMLImport():
                         mesh.outputNormal(nVector[counter][0], nVector[counter][1], nVector[counter][2])
                     if len(nVector) > 0:
                         mesh.outputTexcoord(tVector[counter][0], tVector[counter][1])
+                    if len(cVector) > 0:
+                        mesh.outputDiffuseColor(cVector[counter][0], cVector[counter][1], cVector[counter][2])
                     mesh.endVertex()
                     counter += 1
 
@@ -267,6 +284,8 @@ class OgreXMLImport():
         def __start_texcoord(self, attributes):
             self.mc.addTexcoord([attributes.getValueByQName("u"),
                                  attributes.getValueByQName("v")])
+        def __start_diffusecolor(self, attributes):
+            self.mc.addDiffuseColor(attributes.getValueByQName("value"))
         def __start_boneassignments(self, attributes):
             self.mc.newBoneAssignments()
         def __start_vertexboneassignment(self, attributes):
@@ -304,6 +323,8 @@ class OgreXMLImport():
             pass
         def __end_texcoord(self):
             pass
+        def __end_diffusecolor(self):
+            pass
         def __end_boneassignments(self):
             pass
         def __end_vertexboneassignment(self):
@@ -327,6 +348,7 @@ class OgreXMLImport():
             if tag == "position":             return self.__start_position(attributes)
             if tag == "normal":               return self.__start_normal(attributes)
             if tag == "texcoord":             return self.__start_texcoord(attributes)
+            if tag == "colour_diffuse":       return self.__start_diffusecolor(attributes)
             if tag == "boneassignmenst":      return self.__start_boneassignments(attributes)
             if tag == "vertexboneassignment": return self.__start_vertexboneassignment(attributes)
             if tag == "skeletonlink":         return self.__start_skeletonlink(attributes)
@@ -345,6 +367,7 @@ class OgreXMLImport():
             if tag == "position":             return self.__end_position()
             if tag == "normal":               return self.__end_normal()
             if tag == "texcoord":             return self.__end_texcoord()
+            if tag == "colour_diffuse":       return self.__end_diffusecolor()
             if tag == "boneassignmenst":      return self.__end_boneassignments()
             if tag == "vertexboneassignment": return self.__end_vertexboneassignment()
             if tag == "skeletonlink":         return self.__end_skeletonlink()
@@ -391,9 +414,7 @@ class OgreXMLImport():
             indent_str = ""
             for i in range(self.indent):
                 indent_str = indent_str + " "
-            #self.outputXMLbuffer += (indent_str + str(msg) + "\n")
             self.outputXMLFile.write((indent_str + str(msg) + "\n"))
-            #print indent_str + str(msg)
 
         def __increaseIndent(self):
             self.indent += 1
@@ -412,13 +433,15 @@ class OgreXMLImport():
             self.__decreaseIndent()
             self.__outputXML("</mesh>")
 
-        def startVertexbuffer(self, position=True, normal=True, texcoord=True, tex_dimensions=2):
+        def startVertexbuffer(self, position=True, normal=True, texcoord=True, diffusecolor=False, tex_dimensions=2):
             s_out = ""
             if normal == True:   s_out += "normals=\"true\" "
             if position == True: s_out += "positions=\"true\" "
             if texcoord == True:
                 s_out += "texture_coords=\"true\""
                 s_out += "tex_coord_dimensions=\"%d\"" % tex_dimensions
+            if diffusecolor == True:
+                s_out += "colours_diffuse=\"true\""
             self.__outputXML("<vertexbuffer %s>" % s_out)
             self.__increaseIndent()
 
@@ -490,6 +513,9 @@ class OgreXMLImport():
         def outputFace(self, v1, v2, v3):
             self.__outputXML("<face v1=\""+str(v1)+"\" v2=\""+str(v2)+"\" v3=\""+str(v3)+"\"/>")
 
+        def outputDiffuseColor(self, r, g, b):
+            self.__outputXML("<colour_diffuse value=\"%f %f %f\" />" % (r, g, b))
+
 #############################################################################
 # OgreMeshImport class - for importing binary ogre meshes
 #
@@ -559,6 +585,13 @@ class VTKMeshImport():
                     vector = f.readline().split(" ")
                     self.meshcontainer.addFace([int(vector[1]), int(vector[2]), int(vector[3])])
                 #print "%d vertices read" % nPoints
+            if line.find("COLOR_SCALARS") != -1:
+                # at this point we already know nPoints
+                #nPolygons = int(line.split()[1])
+                for index in range(nPoints):
+                    vector = f.readline().split(" ")
+                    self.meshcontainer.addDiffuseColor([float(vector[0]), float(vector[1]), float(vector[2])])
+                print "%d colours read" % nPoints
 
             if line == "": break
             #print line.strip()
