@@ -71,8 +71,8 @@ class TXMLOutput():
 # TXML entity level
 #
 
-    def startEntity(self):
-        self.outputXML("<entity id=\"" + str(self.entity_id) + "\">")
+    def startEntity(self, sync="1"):
+        self.outputXML("<entity id=\"%s\" sync=\"%s\">" % (self.entity_id, str(sync)))
         self.increaseIndent()
 
     def endEntity(self):
@@ -84,8 +84,11 @@ class TXMLOutput():
 # TXML component level
 #
 
-    def startComponent(self, component, sync):
-        self.outputXML("<component type=\"" + str(component) + "\" sync=\"" + str(sync) + "\">")
+    def startComponent(self, component, sync, name=""):
+        if name == "":
+            self.outputXML("<component type=\"%s\" sync=\"%s\">" % (component, sync))
+        else:
+            self.outputXML("<component type=\"%s\" sync=\"%s\" name=\"%s\">" % (component, sync, name))
         self.increaseIndent()
 
     def endComponent(self):
@@ -97,10 +100,13 @@ class TXMLOutput():
 #
 
     def createAttribute(self, name, value):
-        self.outputXML("<attribute value=\"" + str(value) + "\" name=\"" + str(name) + "\"/>")
+        self.outputXML("<attribute value=\"%s\" name=\"%s\"/>" % (str(value), str(name)))
+
+    def createDynamicAttribute(self, name, value, type):
+        self.outputXML("<attribute name=\"%s\" value=\"%s\" type=\"%s\"/>" % (name, value, type))
 
 #############################################################################
-# TXML standalone test case
+# TXML standalone unit test
 #
 
 if __name__ == "__main__": # if run standalone
