@@ -473,7 +473,7 @@ class OgreXMLImport():
             self.__decreaseIndent()
             self.__outputXML("</submeshes>")
 
-        def startSubmesh(self, material, sharedvertices, longindices, operationtype):
+        def startSubmesh(self, material, sharedvertices, longindices=False, operationtype="triangle_mesh"):
             s_out = "material=\"%s\" " % material
             s_out += "usesharedvertices=\"%s\" " % sharedvertices
             s_out += "use32bitindexes=\"%s\" " % longindices

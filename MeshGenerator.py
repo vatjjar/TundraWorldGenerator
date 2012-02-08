@@ -10,7 +10,7 @@ import random
 import numpy
 import math
 
-import OgreXMLOutput
+import OgreMeshXML
 
 class MeshGenerator():
     """ class MeshGenerator(): A collection of procedural methods for
@@ -23,7 +23,8 @@ class MeshGenerator():
         """ MeshGenerator.__init__(width, height):
         """
         self.initialize()
-        self.OgreXML = OgreXMLOutput.OgreXMLOutput()
+        self.OgreXML = None
+
 
     def initialize(self, vertices=3, faces=1, texcoords=3, normals=1):
         """ MeshGenerator.initialize():
@@ -63,6 +64,7 @@ class MeshGenerator():
 #
 
     def toFile(self, filename, overwrite=False):
+        self.OgreXML = OgreMeshXML.OgreXMLImport.OgreXMLExport(filename, overwrite)
         self.OgreXML.startMesh()
         self.OgreXML.startSharedgeometry(len(self.a_vertices))
         self.OgreXML.startVertexbuffer(position=True, normal=True, texcoord=True)
@@ -74,16 +76,16 @@ class MeshGenerator():
             self.OgreXML.endVertex()
         self.OgreXML.endVertexbuffer()
         self.OgreXML.endSharedgeometry()
-        self.OgreXML.startSubMeshes()
-        self.OgreXML.startSubMesh("test.material", True)
+        self.OgreXML.startSubmeshes()
+        self.OgreXML.startSubmesh("test.material", True, False)
         self.OgreXML.startFaces(len(self.a_faces))
         for i in range(len(self.a_faces)):
             self.OgreXML.outputFace(self.a_faces[i,0], self.a_faces[i,1], self.a_faces[i,2])
         self.OgreXML.endFaces()
-        self.OgreXML.endSubMesh()
-        self.OgreXML.endSubMeshes()
+        self.OgreXML.endSubmesh()
+        self.OgreXML.endSubmeshes()
         self.OgreXML.endMesh()
-        self.OgreXML.toFile(filename, overwrite)
+        self.OgreXML.closeOutputXML()
         return True
 
     def toTextFile(self, filename, overwrite=False):
