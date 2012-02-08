@@ -56,16 +56,58 @@ class WorldGenerator():
         self.TXML.createAttribute("description", str(description))
         self.TXML.endComponent()
 
-    def create_component_placeable(self, transform="0,0,0,0,0,180,1,1,1"):
+    def create_component_placeable(self, transform="0,0,0,0,0,180,1,1,1", parententity=""):
         self.TXML.startComponent("EC_Placeable", "1")
-        #self.TXML.createAttribute("Position", "0 0 0")
-        #self.TXML.createAttribute("Scale", "0 0 0")
         self.TXML.createAttribute("Transform", str(transform))
         self.TXML.createAttribute("Show bounding box", "false")
         self.TXML.createAttribute("Visible", "true")
         self.TXML.createAttribute("Selection layer", "1")
-        self.TXML.createAttribute("Parent entity ref", "")
+        self.TXML.createAttribute("Parent entity ref", parententity)
         self.TXML.createAttribute("Parent bone name", "")
+        self.TXML.endComponent()
+
+    def create_component_script(self, scriptref, runonload, runmode, appname, classname):
+        self.TXML.startComponent("EC_Script", "1")
+        self.TXML.createAttribute("Script ref", str(scriptref))
+        self.TXML.createAttribute("Run on load", str(runonload))
+        self.TXML.createAttribute("Run mode", str(runmode))
+        self.TXML.createAttribute("Script application name", str(appname))
+        self.TXML.createAttribute("Script class name", str(classname))
+        self.TXML.endComponent()
+
+    def create_component_inputmapper(self):
+        self.TXML.startComponent("EC_InputMapper", "1")
+        self.TXML.createAttribute("Input context name", "EC_InputMapper")
+        self.TXML.createAttribute("Input context priority", "90")
+        self.TXML.createAttribute("Take keyboard events over QT", "false")
+        self.TXML.createAttribute("Take mouse events over QT", "false")
+        self.TXML.createAttribute("Action execution type", "1")
+        self.TXML.createAttribute("Key modifiers enable", "true")
+        self.TXML.createAttribute("Enable actions", "true")
+        self.TXML.createAttribute("Trigger on keyrepeats", "true")
+        self.TXML.createAttribute("Suppress used keyboard events", "false")
+        self.TXML.createAttribute("Suppress used mouse events", "false")
+        self.TXML.endComponent()
+
+    def create_component_ogrecompositor(self):
+        self.TXML.startComponent("EC_OgreCompositor", "1")
+        self.TXML.createAttribute("Enabled", "false")
+        self.TXML.createAttribute("Compositor ref", "HDR")
+        self.TXML.createAttribute("Priority", "-1")
+        self.TXML.createAttribute("Parameters", "")
+        self.TXML.endComponent()
+
+    def create_component_dynamiccomponent(self, name, variables):
+        self.TXML.startComponent("EC_DynamicComponent", sync="1", name=name)
+        for var in variables:
+            self.TXML.createDynamicAttribute(var[0], var[1], var[2])
+        self.TXML.endComponent()
+
+    def create_component_material(self, params, outputmaterial, inputmaterial):
+        self.TXML.startComponent("EC_Material", "1")
+        self.TXML.createAttribute("Parameters", params)
+        self.TXML.createAttribute("Output material", outputmaterial)
+        self.TXML.createAttribute("Input material", inputmaterial)
         self.TXML.endComponent()
 
     ### Logical components for the world
@@ -82,7 +124,7 @@ class WorldGenerator():
         self.TXML.startEntity()
         # Mesh component
         self.TXML.startComponent("EC_Mesh", "1")
-        self.TXML.createAttribute("Transform", "0,0,0,00,0,180,1,1,1")
+        self.TXML.createAttribute("Transform", "0,0,0,0,0,180,1,1,1")
         self.TXML.createAttribute("Mesh ref", str(reference) + str(mesh))
         self.TXML.createAttribute("Skeleton ref", "")
         self.TXML.createAttribute("Mesh materials", self.insert_materials(reference, materials))
@@ -93,13 +135,6 @@ class WorldGenerator():
         self.create_component_name(str(name), "")
         # Placeable -component
         self.create_component_placeable(transform)
-        #self.TXML.startComponent("EC_Placeable", "1")
-        #self.TXML.createAttribute("Position", "0 0 0")
-        #self.TXML.createAttribute("Scale", "0 0 0")
-        #self.TXML.createAttribute("Transform", transform)
-        #self.TXML.createAttribute("Show bounding box", "false")
-        #self.TXML.createAttribute("Visible", "true")
-        #self.TXML.endComponent()
         # Rigidbody -component
         #self.create_component_rigidbody(reference, "1", "4", mesh)
         self.TXML.endEntity()
@@ -125,19 +160,6 @@ class WorldGenerator():
         self.TXML.endEntity()
 
     def create_avatar(self, reference, script):
-        #<entity id="2" sync="1">
-        # <component type="EC_Script" sync="1">
-        #  <attribute value="avatarapplication.js;simpleavatar.js;exampleavataraddon.js" name="Script ref"/>
-        #  <attribute value="true" name="Run on load"/>
-        #  <attribute value="0" name="Run mode"/>
-        #  <attribute value="AvatarApp" name="Script application name"/>
-        #  <attribute value="" name="Script class name"/>
-        # </component>
-        # <component type="EC_Name" sync="1">
-        #  <attribute value="AvatarApp" name="name"/>
-        #  <attribute value="" name="description"/>
-        # </component>
-        #</entity>
         self.TXML.startEntity()
         self.TXML.startComponent("EC_Script", "1")
         self.TXML.createAttribute("Script ref", str(script))
@@ -198,22 +220,33 @@ class WorldGenerator():
         self.create_component_name("FreeLookCameraSpawnPos", "")
         self.create_component_placeable(transform)
         self.TXML.endEntity()
-        #<entity id="7" sync="1">
-        # <component type="EC_Placeable" sync="1">
-        #  <attribute value="1.07871,16.6713,35.9556,-33.9,-0.60001,0,1,1,1" name="Transform"/>
-        #  <attribute value="false" name="Show bounding box"/>
-        #  <attribute value="true" name="Visible"/>
-        #  <attribute value="1" name="Selection layer"/>
-        #  <attribute value="" name="Parent entity ref"/>
-        #  <attribute value="" name="Parent bone name"/>
-        # </component>
-        # <component type="EC_Name" sync="1">
-        #  <attribute value="FreeLookCameraSpawnPos" name="name"/>
-        #  <attribute value="" name="description"/>
-        # </component>
-        #</entity>
+
         return
 
+    def create_hydrax_and_skyx(self):
+        self.TXML.startEntity()
+        self.create_component_name("Environment", "")
+        self.TXML.startComponent("EC_SkyX", "1")
+        self.TXML.createAttribute("Cloud type", "1")
+        self.TXML.createAttribute("Time multiplier", "0.25")
+        self.TXML.createAttribute("Time [0-24]", "16.9780979")
+        self.TXML.createAttribute("Time sunrise [0-24]", "7.5")
+        self.TXML.createAttribute("Time sunset [0-24]", "20.5")
+        self.TXML.createAttribute("Cloud coverage [0-100]", "50")
+        self.TXML.createAttribute("Cloud average size [0-100]", "50")
+        self.TXML.createAttribute("Cloud height", "100")
+        self.TXML.createAttribute("Moon phase [0-100]", "70.7420731")
+        self.TXML.createAttribute("Sun inner radius", "9.75")
+        self.TXML.createAttribute("Sun outer radius", "10.25")
+        self.TXML.createAttribute("Wind direction", "0")
+        self.TXML.createAttribute("Wind speed", "5")
+        self.TXML.endComponent()
+        self.TXML.startComponent("EC_Hydrax", "1")
+        self.TXML.createAttribute("Config ref", "HydraxDefault.hdx")
+        self.TXML.createAttribute("Visible", "true")
+        self.TXML.createAttribute("Position", "0.0 7.0 0.0")
+        self.TXML.endComponent()
+        self.TXML.endEntity()
 ###
 
 if __name__ == "__main__": # if run standalone
@@ -270,7 +303,7 @@ if __name__ == "__main__": # if run standalone
                                      "plane.mesh",
                                      "local://",
                                      (),
-                                     y, x, z)
+                                     transform="%f,%f,%f,0,0,0,0,0,180" % (y, x, z))
         #print "creaeting in %d %d %d" % (x, y, z)
 
     world.TXML.endScene()
