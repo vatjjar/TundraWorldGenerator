@@ -40,7 +40,6 @@ class MeshGenerator():
               coordinate system and which is centered to origin.
             - Level of detail will range number of faces in the plane from 2-50.
         """
-        #self.initialize(vertices=(LOD+1)*(LOD+1), faces=2*LOD*LOD, normals=(LOD+1)*(LOD+1), texcoords=(LOD+1)*(LOD+1))
         self.meshcontainer.initialize()
         self.meshcontainer.newSubmesh()
         x_delta = 1.0 / LOD
@@ -50,34 +49,15 @@ class MeshGenerator():
         #
         for x in range(LOD+1):
             for y in range(LOD+1):
-                #print "Injecting vertex %d with data %f %f %f" % (x*(LOD+1)+y, -1+x*x_delta, 0, -1+y*y_delta)
-                #self.a_vertices[x*(LOD+1)+y, 0] = -0.5 + x*x_delta
-                #self.a_vertices[x*(LOD+1)+y, 1] = 0.0
-                #self.a_vertices[x*(LOD+1)+y, 2] = -0.5 + y*y_delta
                 self.meshcontainer.addVertex([-0.5 + x*x_delta, 0.0, -0.5 + y*y_delta])
-                #print "Injecting normal %d with data %f %f %f" % (x*(LOD+1)+y, 0, -1, 0)
-                #self.a_normals[x*(LOD+1)+y, 0] =  0.0
-                #self.a_normals[x*(LOD+1)+y, 1] = -1.0
-                #self.a_normals[x*(LOD+1)+y, 2] =  0.0
                 self.meshcontainer.addNormal([0.0, -1.0, 0.0])
-                #print "Injecting texcoord %d with data %f %f" % (x*(LOD+1)+y, (x*x_delta)/2.0, (y*y_delta)/2.0)
-                #self.a_texcoords[x*(LOD+1)+y, 0] = 0.0 + x*x_delta
-                #self.a_texcoords[x*(LOD+1)+y, 1] = 0.0 + y*y_delta
                 self.meshcontainer.addTexcoord([x*x_delta, y*y_delta])
         #
         # And according to above, we create faces
         #
         for x in range(LOD):
             for y in range(LOD):
-                #print "Injecting face %d with vertices %d %d %d" % ((2*(x*LOD+y)), 0     + y+x*(LOD+1), 1     + y+x*(LOD+1), LOD+2 + y+x*(LOD+1))
-                #self.a_faces[2*(x*LOD+y), 0]   = 0     + y+x*(LOD+1)
-                #self.a_faces[2*(x*LOD+y), 1]   = 1     + y+x*(LOD+1)
-                #self.a_faces[2*(x*LOD+y), 2]   = LOD+2 + y+x*(LOD+1)
                 self.meshcontainer.addFace([y+x*(LOD+1), 1+y+x*(LOD+1), LOD+2+y+x*(LOD+1)])
-                #print "Injecting face %d with vertices %d %d %d" % ((2*(x*LOD+y)+1), 0     + y+x*(LOD+1),LOD+2 + y+x*(LOD+1),LOD+1   + y+x*(LOD+1))
-                #self.a_faces[2*(x*LOD+y)+1, 0] = 0     + y+x*(LOD+1)
-                #self.a_faces[2*(x*LOD+y)+1, 1] = LOD+2 + y+x*(LOD+1)
-                #self.a_faces[2*(x*LOD+y)+1, 2] = LOD+1 + y+x*(LOD+1)
                 self.meshcontainer.addFace([y+x*(LOD+1), LOD+2+y+x*(LOD+1), LOD+1+y+x*(LOD+1)])
 
     #########################################################################
@@ -86,7 +66,6 @@ class MeshGenerator():
     #   meshcontainer provided translation tools
     #
     def createCube(self, LOD=1):
-        #self.initialize(vertices=8, faces=12, normals=8, texcoords=8)
         self.meshcontainer.initialize()
         #
         # Temporary mesh container for plane mesh (single side of a cube)
