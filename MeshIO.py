@@ -318,10 +318,10 @@ class OgreXMLExport():
         if normal == True:   s_out += "normals=\"true\" "
         if position == True: s_out += "positions=\"true\" "
         if texcoord == True:
-            s_out += "texture_coords=\"true\""
-            s_out += "tex_coord_dimensions=\"%d\"" % tex_dimensions
+            s_out += "texture_coords=\"true\" "
+            s_out += "tex_coord_dimensions=\"%d\" " % tex_dimensions
         if diffusecolor == True:
-            s_out += "colours_diffuse=\"true\""
+            s_out += "colours_diffuse=\"true\" "
         self.__outputXML("<vertexbuffer %s>" % s_out)
         self.__increaseIndent()
 

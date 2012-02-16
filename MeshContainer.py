@@ -6,6 +6,7 @@
 #
 
 import sys, os
+import math
 
 #############################################################################
 # MeshContainer class
@@ -59,6 +60,69 @@ class MeshContainer():
 
         def optimize(self, tolerance=0.01):
             self.__message("Submesh: optimize")
+            d = {}
+            #
+            # First the eucleidean distance is checked whether we have overlapping vertices:
+            #
+            for i in range(len(self.vertexBuffer.vertices)/3):
+                for j in range(i+1, len(self.vertexBuffer.vertices)/3):
+                    a = self.vertexBuffer.vertices[3*i+0] - self.vertexBuffer.vertices[3*j+0]
+                    b = self.vertexBuffer.vertices[3*i+1] - self.vertexBuffer.vertices[3*j+1]
+                    c = self.vertexBuffer.vertices[3*i+2] - self.vertexBuffer.vertices[3*j+2]
+                    eta = a*a + b*b + c*c
+                    eta = math.sqrt(eta)
+                    if eta < tolerance:
+                        #print "eta %f %d %d" % (eta, i, j)
+                        d[j] = i                                # Populate search-replce dict
+            #
+            # If search-replace dictionary is populated, then we have some elements removed
+            #
+            if len(d.items()) > 0:
+                #
+                # First the face index reordering ...
+                #
+                for i in range(len(self.faces)):
+                    try:
+                        #print "replace %d with %d" % (self.faces[i], d[self.faces[i]])
+                        self.faces[i] = d[self.faces[i]]
+                    except KeyError: pass
+                #
+                # ... and then reconstruction of the element lists after deletion
+                #
+                uniqueFaces = []
+                for i in self.faces: # First gather a list of unique vertices (indicated by the faces)
+                    if i not in uniqueFaces: uniqueFaces.append(i)
+                newVertices      = []
+                newNormals       = []
+                newTexcoords     = []
+                newDiffusecolors = []
+                for i in uniqueFaces:
+                    # Vertices
+                    newVertices.append(self.vertexBuffer.vertices[i*3+0])
+                    newVertices.append(self.vertexBuffer.vertices[i*3+1])
+                    newVertices.append(self.vertexBuffer.vertices[i*3+2])
+                    # Normals
+                    try:
+                        newNormals.append(self.vertexBuffer.normals[i*3+0])
+                        newNormals.append(self.vertexBuffer.normals[i*3+1])
+                        newNormals.append(self.vertexBuffer.normals[i*3+2])
+                    except IndexError: pass
+                    # Texcoords
+                    try:
+                        newTexcoords.append(self.vertexBuffer.texcoords[i*2+0])
+                        newTexcoords.append(self.vertexBuffer.texcoords[i*2+1])
+                    except IndexError: pass
+                    # Diffuse colors
+                    try:
+                        newDiffusecolors.append(self.vertexBuffer.diffusecolors[i*3+0])
+                        newDiffusecolors.append(self.vertexBuffer.diffusecolors[i*3+1])
+                        newDiffusecolors.append(self.vertexBuffer.diffusecolors[i*3+2])
+                    except IndexError: pass
+                #print "Previous vertices %d, new vertices %d" % (len(self.vertexBuffer.vertices), len(newVertices))
+                self.vertexBuffer.vertices      = newVertices
+                self.vertexBuffer.normals       = newNormals
+                self.vertexBuffer.texcoords     = newTexcoords
+                self.vertexBuffer.diffusecolors = newDiffusecolors
 
     ####
     # Vertex buffer holds positions, normals and texcoords needed for rendering
@@ -93,7 +157,6 @@ class MeshContainer():
 
         def merge(self, vertexbuffer):
             self.__message("VertexBuffer: merge")
-            #vOffset = len(self.vertices) / 3
             for i in vertexbuffer.vertices:
                 self.vertices.append(i)
             for i in vertexbuffer.normals:
@@ -235,7 +298,8 @@ class MeshContainer():
 
     def optimize(self, tolerance=0.01):
         self.__message("MeshContainer: optimize")
-        pass
+        for m in self.submeshes:
+            m.optimize(tolerance)
 
     #####
     # MeshContainer: debug

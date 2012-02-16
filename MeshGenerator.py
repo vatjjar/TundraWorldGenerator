@@ -41,7 +41,7 @@ class MeshGenerator():
             - Level of detail will range number of faces in the plane from 2-50.
         """
         self.meshcontainer.initialize()
-        self.meshcontainer.newSubmesh()
+        self.meshcontainer.newSubmesh()     # The plane is pushed into single submesh
         x_delta = 1.0 / LOD
         y_delta = 1.0 / LOD
         #
