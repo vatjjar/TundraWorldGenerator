@@ -51,12 +51,19 @@ class MeshContainer():
             self.__message("Submesh: translate %f %f %f" % (x, y, z))
             self.vertexBuffer.translate(x, y, z)
 
+        def rotate(self, angle, x, y, z):
+            self.__message("Submesh: rotate %f around %f %f %f" % (angle, x, y, z))
+            self.vertexBuffer.rotate(angle, x, y, z)
+
         def merge(self, submesh):
             self.__message("Submesh: merge")
             vOffset = len(self.vertexBuffer.vertices) / 3
             for i in submesh.faces:
                 self.faces.append(i + vOffset)
             self.vertexBuffer.merge(submesh.vertexBuffer)
+
+        def resetOrigin(self):
+            pass
 
         def optimize(self, tolerance=0.01):
             self.__message("Submesh: optimize")
@@ -154,6 +161,39 @@ class MeshContainer():
                 self.vertices[i*3+0] += x
                 self.vertices[i*3+1] += y
                 self.vertices[i*3+2] += z
+
+        def rotate(self, angle, x, y, z):
+            sinA = math.sin(angle * math.pi / 180.0)
+            cosA = math.cos(angle * math.pi / 180.0)
+            # Normalize rotation vector
+            m = math.sqrt(x*x + y*y + z*z)
+            x = x/m; y = y/m; z = z/m
+            # Calc temp variables, for populating the rotation matrix
+            xs = x*sinA; ys = y*sinA; zs = z*sinA
+            ca = 1.0 - cosA
+            # Populate rotation matrix
+            mat = [ [x*x*ca+cosA,  x*y*ca-zs,    x*z*ca+ys,  ],
+                    [x*y*ca+zs,    y*y*ca+cosA,  y*z*ca-xs,  ],
+                    [x*z*ca-ys,    y*z*ca+xs,    z*z*ca+cosA ] ]
+            #
+            # Now rotate all vertices and normals
+            #
+            vr = [0.0, 0.0, 0.0]    # temporary vector
+            for i in range(len(self.vertices)/3):
+                for j in xrange(3):
+                    vr[j] = mat[j][0]*self.vertices[i*3+0] + \
+                            mat[j][1]*self.vertices[i*3+1] + \
+                            mat[j][2]*self.vertices[i*3+2]
+                self.vertices[i*3+0] = vr[0]
+                self.vertices[i*3+1] = vr[1]
+                self.vertices[i*3+2] = vr[2]
+            for j in xrange(3):
+                vr[j] = mat[j][0]*self.normals[i*3+0] + \
+                        mat[j][1]*self.normals[i*3+1] + \
+                        mat[j][2]*self.normals[i*3+2]
+            self.normals[i*3+0] = vr[0]
+            self.normals[i*3+1] = vr[1]
+            self.normals[i*3+2] = vr[2]
 
         def merge(self, vertexbuffer):
             self.__message("VertexBuffer: merge")
@@ -262,6 +302,13 @@ class MeshContainer():
             s.translate(x, y, z)
         if self.sharedgeometry != None:
             self.sharedgeometry.translate(x, y, z)
+
+    def rotate(self, angle, x, y, z):
+        self.__message("Meshcontainer: rotate %f around %f %f %f" % (angle, x, y, z))
+        for s in self.submeshes:
+            s.rotate(angle, x, y, z)
+        if self.sharedgeometry != None:
+            self.sharedgeometry.rotate(angle, x, y, z)
 
     def merge(self, meshcontainer):
         """ merge() is a destructive merge operation of two meshcontainers. Target
