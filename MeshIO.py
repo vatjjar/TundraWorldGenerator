@@ -255,7 +255,7 @@ class OgreXMLExport():
                     self.outputPosition(vVector[counter][0], vVector[counter][1], vVector[counter][2])
                     if len(nVector) > 0:
                         self.outputNormal(nVector[counter][0], nVector[counter][1], nVector[counter][2])
-                    if len(nVector) > 0:
+                    if len(tVector) > 0:
                         self.outputTexcoord(tVector[counter][0], tVector[counter][1])
                     if len(cVector) > 0:
                         self.outputDiffuseColor(cVector[counter][0], cVector[counter][1], cVector[counter][2])
