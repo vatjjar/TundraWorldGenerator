@@ -7,7 +7,6 @@
 
 import sys, os, io
 import random
-import numpy
 import math
 
 import MeshContainer
@@ -67,6 +66,7 @@ class MeshGenerator():
     #
     def createCube(self, LOD=1):
         self.meshcontainer.initialize()
+        self.meshcontainer.newSubmesh()
         #
         # Temporary mesh container for plane mesh (single side of a cube)
         #
@@ -104,6 +104,36 @@ class MeshGenerator():
         # finally optimize the results
         #self.meshcontainer.optimize(tolerance=0.1)
 
+    #########################################################################
+    # Cylinder
+    # - Constructs a cylinder with either open or closed ends
+    #
+    def createCylinder(self, r1, r2, LOD=1, end1=True, end2=True):
+        nR = 5+LOD
+        slices = LOD+1
+        hDelta = 1.0/slices
+        rDelta = (r1-r2)/slices
+
+        self.meshcontainer.initialize()
+        self.meshcontainer.newSubmesh()     # The plane is pushed into single submesh
+
+        for i in xrange(slices+1):          # Vertical slices
+            for j in xrange(nR):            # Circular slices
+                r = r2 + i*rDelta           # Current slice radius
+                a = j*2*math.pi/(nR-1)      # Current circle angle
+                self.meshcontainer.addVertex([r*math.sin(a), r*math.cos(a), -0.5+i*hDelta])
+                self.meshcontainer.addNormal([0.0, -1.0, 0.0]) # This is bogus
+                self.meshcontainer.addTexcoord([j*1.0/(nR-1), i*hDelta])
+
+        for i in xrange(slices):
+            for j in xrange(nR-1):
+                self.meshcontainer.addFace([i*nR+j, (i+1)*nR+j,   (i+1)*nR+j+1])
+                self.meshcontainer.addFace([i*nR+j, (i+1)*nR+j+1, i*nR+j+1])
+            # Two extra faces wrap the shape up
+            # self.meshcontainer.addFace([i*nR+4+LOD, (i+1)*nR+4+LOD, (i+1)*nR])
+            # self.meshcontainer.addFace([i*nR+4+LOD, (i+1)*nR,       i*nR])
+
+
 ############################################################################
 # Transformation helpers, for procedural meshes
 #
@@ -140,7 +170,8 @@ class MeshGenerator():
 if __name__ == "__main__": # if run standalone
     mesh = MeshContainer.MeshContainer()
     meshgen = MeshGenerator(mesh)
-    meshgen.createCube(LOD=10)
+    meshgen.createCube(LOD=1)
+    meshgen.createCylinder(0.25, 0.75, LOD=10, end1=True, end2=True)
     meshio = MeshIO.MeshIO(mesh)
     meshio.toFile("./Plane.mesh.xml", overwrite=True)
 
