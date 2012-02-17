@@ -101,8 +101,6 @@ class MeshGenerator():
         mesh.rotate(180, 0, 1, 0)
         mesh.translate(0.0, 0.0, 0.5)
         self.meshcontainer.merge(mesh)
-        # finally optimize the results
-        #self.meshcontainer.optimize(tolerance=0.1)
 
     #########################################################################
     # Cylinder
@@ -129,41 +127,6 @@ class MeshGenerator():
             for j in xrange(nR-1):
                 self.meshcontainer.addFace([i*nR+j, (i+1)*nR+j,   (i+1)*nR+j+1])
                 self.meshcontainer.addFace([i*nR+j, (i+1)*nR+j+1, i*nR+j+1])
-            # Two extra faces wrap the shape up
-            # self.meshcontainer.addFace([i*nR+4+LOD, (i+1)*nR+4+LOD, (i+1)*nR])
-            # self.meshcontainer.addFace([i*nR+4+LOD, (i+1)*nR,       i*nR])
-
-
-############################################################################
-# Transformation helpers, for procedural meshes
-#
-# - Rotate
-# - Translate
-# - Scale
-# - MatrixMultiply
-#############################################################################
-
-    def rotate(self):
-        return
-
-    def translate(self, x=0.0, y=0.0, z=0.0):
-        for i in range(self.n_vertices):
-            self.a_vertices[i, 0] = self.a_vertices[i,0] + float(x)
-            self.a_vertices[i, 1] = self.a_vertices[i,1] + float(y)
-            self.a_vertices[i, 2] = self.a_vertices[i,2] + float(z)
-
-    def scale(self, x=1.0, y=1.0, z=1.0):
-        for i in range(self.n_vertices):
-            self.a_vertices[i, 0] = self.a_vertices[i,0] * float(x)
-            self.a_vertices[i, 1] = self.a_vertices[i,1] * float(y)
-            self.a_vertices[i, 2] = self.a_vertices[i,2] * float(z)
-
-    def matrixMultiply(self, m):
-        for i in range(self.n_vertices):
-            for j in range(3):
-                self.a_vertices[i,0] = m[j,0]*self.a_vertices[0,0] + \
-                                       m[j,1]*self.a_vertices[0,1] + \
-                                       m[j,2]*self.a_vertices[0,2]
 
 #############################################################################
 
