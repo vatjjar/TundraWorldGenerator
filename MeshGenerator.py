@@ -74,13 +74,35 @@ class MeshGenerator():
         meshgen = MeshGenerator(mesh)
         meshgen.createPlane(LOD)
         # Cube Face 1
-        mesh.translate(0.0, -0.5, 0.0)
+        mesh.translate(0.0, 0.5, 0.0)
         self.meshcontainer.merge(mesh)
         # Cube Face 2
-        mesh.translate(0.0,  1.0, 0.0)
+        mesh.translate(0.0, -0.5, 0.0)
+        mesh.rotate(90, 0, 0, 1)
+        mesh.translate(-0.5, 0.0, 0.0)
+        self.meshcontainer.merge(mesh)
+        # Cube Face 3
+        mesh.translate(0.5, 0.0, 0.0)
+        mesh.rotate(90, 0, 0, 1)
+        mesh.translate(0.0, -0.5, 0.0)
+        self.meshcontainer.merge(mesh)
+        # Cube Face 4
+        mesh.translate(0.0,  0.5, 0.0)
+        mesh.rotate(90, 0, 0, 1)
+        mesh.translate(0.5, 0.0, 0.0)
+        self.meshcontainer.merge(mesh)
+        # Cube Face 5
+        mesh.translate(-0.5,  0.0, 0.0)
+        mesh.rotate(90, 0, 1, 0)
+        mesh.translate(0.0, 0.0, -0.5)
+        self.meshcontainer.merge(mesh)
+        # Cube Face 6
+        mesh.translate(0.0, 0.0, 0.5)
+        mesh.rotate(180, 0, 1, 0)
+        mesh.translate(0.0, 0.0, 0.5)
         self.meshcontainer.merge(mesh)
         # finally optimize the results
-        self.meshcontainer.optimize(tolerance=0.1)
+        #self.meshcontainer.optimize(tolerance=0.1)
 
 ############################################################################
 # Transformation helpers, for procedural meshes
@@ -118,7 +140,7 @@ class MeshGenerator():
 if __name__ == "__main__": # if run standalone
     mesh = MeshContainer.MeshContainer()
     meshgen = MeshGenerator(mesh)
-    meshgen.createCube(LOD=1)
+    meshgen.createCube(LOD=10)
     meshio = MeshIO.MeshIO(mesh)
     meshio.toFile("./Plane.mesh.xml", overwrite=True)
 
