@@ -115,9 +115,8 @@ class WorldGenerator():
     def insert_materials(self, reference, materials):
         #self.message("Inserting %d materials with reference %s" % (len(materials), reference))
         m_str = ""
-        for i in range(len(materials)):
-            m_str = m_str + str(reference) + materials[i]
-            if i != len(materials)-1: m_str = m_str + ";"
+        for i in materials:
+            m_str += (str(reference) + i + ";")
         return m_str
 
     def create_static_mesh(self, name, mesh, reference, materials, transform="0,0,0,0,0,180,1,1,1"):
