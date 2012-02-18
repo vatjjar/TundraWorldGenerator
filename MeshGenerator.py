@@ -37,27 +37,26 @@ class MeshGenerator():
         """ MeshGenerator.createPlane(self, LOD): Create a plane mesh component
             - Method will create a plane mesh component in XZ-plane whose size is 1 times 1 units in
               coordinate system and which is centered to origin.
-            - Level of detail will range number of faces in the plane from 2-50.
         """
         self.meshcontainer.initialize()
         self.meshcontainer.newSubmesh()     # The plane is pushed into single submesh
         x_delta = 1.0 / LOD
-        y_delta = 1.0 / LOD
+        z_delta = 1.0 / LOD
         #
         # First we create vertices, normals and texcoords
         #
         for x in range(LOD+1):
-            for y in range(LOD+1):
-                self.meshcontainer.addVertex([-0.5 + x*x_delta, 0.0, -0.5 + y*y_delta])
-                self.meshcontainer.addNormal([0.0, -1.0, 0.0])
-                self.meshcontainer.addTexcoord([x*x_delta, y*y_delta])
+            for z in range(LOD+1):
+                self.meshcontainer.addVertex([-0.5 + x*x_delta, 0.0, -0.5 + z*z_delta])
+                self.meshcontainer.addNormal([0.0, 1.0, 0.0])
+                self.meshcontainer.addTexcoord([x*x_delta, z*z_delta])
         #
-        # And according to above, we create faces
+        # And according to above, we create the faces
         #
         for x in range(LOD):
-            for y in range(LOD):
-                self.meshcontainer.addFace([y+x*(LOD+1), 1+y+x*(LOD+1), LOD+2+y+x*(LOD+1)])
-                self.meshcontainer.addFace([y+x*(LOD+1), LOD+2+y+x*(LOD+1), LOD+1+y+x*(LOD+1)])
+            for z in range(LOD):
+                self.meshcontainer.addFace([z+x*(LOD+1), LOD+2+z+x*(LOD+1), 1+z+x*(LOD+1)])
+                self.meshcontainer.addFace([z+x*(LOD+1), LOD+1+z+x*(LOD+1), LOD+2+z+x*(LOD+1)])
 
     #########################################################################
     # Cube
@@ -74,21 +73,21 @@ class MeshGenerator():
         meshgen = MeshGenerator(mesh)
         meshgen.createPlane(LOD)
         # Cube Face 1
-        mesh.translate(0.0, 0.5, 0.0)
+        mesh.translate(0.0, -0.5, 0.0)
         self.meshcontainer.merge(mesh)
         # Cube Face 2
-        mesh.translate(0.0, -0.5, 0.0)
-        mesh.rotate(90, 0, 0, 1)
-        mesh.translate(-0.5, 0.0, 0.0)
+        mesh.translate(0.0, 0.5, 0.0)
+        mesh.rotate(180, 1, 0, 0)
+        mesh.translate(0.0, 0.5, 0.0)
         self.meshcontainer.merge(mesh)
         # Cube Face 3
-        mesh.translate(0.5, 0.0, 0.0)
-        mesh.rotate(90, 0, 0, 1)
         mesh.translate(0.0, -0.5, 0.0)
+        mesh.rotate(90, 1, 0, 0)
+        mesh.translate(0.0, 0.0, 0.5)
         self.meshcontainer.merge(mesh)
         # Cube Face 4
-        mesh.translate(0.0,  0.5, 0.0)
-        mesh.rotate(90, 0, 0, 1)
+        mesh.translate(0.0, 0.0, -0.5)
+        mesh.rotate(90, 0, 1, 0)
         mesh.translate(0.5, 0.0, 0.0)
         self.meshcontainer.merge(mesh)
         # Cube Face 5
@@ -98,8 +97,8 @@ class MeshGenerator():
         self.meshcontainer.merge(mesh)
         # Cube Face 6
         mesh.translate(0.0, 0.0, 0.5)
-        mesh.rotate(180, 0, 1, 0)
-        mesh.translate(0.0, 0.0, 0.5)
+        mesh.rotate(90, 0, 1, 0)
+        mesh.translate(-0.5, 0.0, 0.0)
         self.meshcontainer.merge(mesh)
 
     #########################################################################
@@ -119,7 +118,7 @@ class MeshGenerator():
             for j in xrange(nR):            # Circular slices
                 r = r2 + i*rDelta           # Current slice radius
                 a = j*2*math.pi/(nR-1)      # Current circle angle
-                self.meshcontainer.addVertex([r*math.sin(a), r*math.cos(a), -0.5+i*hDelta])
+                self.meshcontainer.addVertex([r*math.sin(a), -0.5+i*hDelta, r*math.cos(a)])
                 self.meshcontainer.addNormal([0.0, -1.0, 0.0]) # This is bogus
                 self.meshcontainer.addTexcoord([j*1.0/(nR-1), i*hDelta])
 
