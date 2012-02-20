@@ -127,13 +127,41 @@ class MeshGenerator():
                 self.meshcontainer.addFace([i*nR+j, (i+1)*nR+j,   (i+1)*nR+j+1])
                 self.meshcontainer.addFace([i*nR+j, (i+1)*nR+j+1, i*nR+j+1])
 
+    #########################################################################
+    # Sphere
+    # - Constructs a Sphere primitive
+    #
+    def createSphere(self, LOD=1):
+        nR = 5+LOD
+        slices = LOD+1
+        hDelta = 2.0/slices
+        #rDelta = (r1-r2)/slices
+
+        self.meshcontainer.initialize()
+        self.meshcontainer.newSubmesh()     # The plane is pushed into single submesh
+
+        for i in xrange(slices+1):          # Vertical slices
+            r = math.sqrt(1.0-(-1.0+i*hDelta)*(-1.0+i*hDelta))
+            print i*hDelta, r
+            for j in xrange(nR):            # Circular slices
+                a = j*2*math.pi/(nR-1)      # Current circle angle
+                self.meshcontainer.addVertex([r*math.sin(a), -1.0+i*hDelta, r*math.cos(a)])
+                self.meshcontainer.addNormal([0.0, -1.0, 0.0]) # This is bogus
+                self.meshcontainer.addTexcoord([j*1.0/(nR-1), i*hDelta])
+
+        for i in xrange(slices):
+            for j in xrange(nR-1):
+                self.meshcontainer.addFace([i*nR+j, (i+1)*nR+j,   (i+1)*nR+j+1])
+                self.meshcontainer.addFace([i*nR+j, (i+1)*nR+j+1, i*nR+j+1])
+
 #############################################################################
 
 if __name__ == "__main__": # if run standalone
     mesh = MeshContainer.MeshContainer()
     meshgen = MeshGenerator(mesh)
-    meshgen.createCube(LOD=1)
-    meshgen.createCylinder(0.25, 0.75, LOD=10, end1=True, end2=True)
+    #meshgen.createCube(LOD=1)
+    #meshgen.createCylinder(0.25, 0.75, LOD=10, end1=True, end2=True)
+    meshgen.createSphere(LOD=15)
     meshio = MeshIO.MeshIO(mesh)
     meshio.toFile("./Plane.mesh.xml", overwrite=True)
 
