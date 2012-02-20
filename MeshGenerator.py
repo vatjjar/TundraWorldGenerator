@@ -48,7 +48,7 @@ class MeshGenerator():
         for x in range(LOD+1):
             for z in range(LOD+1):
                 self.meshcontainer.addVertex([-0.5 + x*x_delta, 0.0, -0.5 + z*z_delta])
-                self.meshcontainer.addNormal([0.0, 1.0, 0.0])
+                self.meshcontainer.addNormal([0.0, -1.0, 0.0])
                 self.meshcontainer.addTexcoord([x*x_delta, z*z_delta])
         #
         # And according to above, we create the faces
@@ -135,14 +135,12 @@ class MeshGenerator():
         nR = 5+LOD
         slices = LOD+1
         hDelta = 2.0/slices
-        #rDelta = (r1-r2)/slices
 
         self.meshcontainer.initialize()
         self.meshcontainer.newSubmesh()     # The plane is pushed into single submesh
 
         for i in xrange(slices+1):          # Vertical slices
             r = math.sqrt(1.0-(-1.0+i*hDelta)*(-1.0+i*hDelta))
-            print i*hDelta, r
             for j in xrange(nR):            # Circular slices
                 a = j*2*math.pi/(nR-1)      # Current circle angle
                 self.meshcontainer.addVertex([r*math.sin(a), -1.0+i*hDelta, r*math.cos(a)])
