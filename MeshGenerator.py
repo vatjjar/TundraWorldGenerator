@@ -48,15 +48,15 @@ class MeshGenerator():
         for x in range(LOD+1):
             for z in range(LOD+1):
                 self.meshcontainer.addVertex([-0.5 + x*x_delta, 0.0, -0.5 + z*z_delta])
-                self.meshcontainer.addNormal([0.0, -1.0, 0.0])
+                self.meshcontainer.addNormal([0.0, 1.0, 0.0])
                 self.meshcontainer.addTexcoord([x*x_delta, z*z_delta])
         #
         # And according to above, we create the faces
         #
         for x in range(LOD):
             for z in range(LOD):
-                self.meshcontainer.addFace([z+x*(LOD+1), LOD+2+z+x*(LOD+1), 1+z+x*(LOD+1)])
-                self.meshcontainer.addFace([z+x*(LOD+1), LOD+1+z+x*(LOD+1), LOD+2+z+x*(LOD+1)])
+                self.meshcontainer.addFace([z+x*(LOD+1), 1+z+x*(LOD+1), LOD+2+z+x*(LOD+1)])
+                self.meshcontainer.addFace([z+x*(LOD+1), LOD+2+z+x*(LOD+1), LOD+1+z+x*(LOD+1)])
 
     #########################################################################
     # Cube
@@ -73,32 +73,32 @@ class MeshGenerator():
         meshgen = MeshGenerator(mesh)
         meshgen.createPlane(LOD)
         # Cube Face 1
-        mesh.translate(0.0, -0.5, 0.0)
+        mesh.translate(0.0, 0.5, 0.0)
         self.meshcontainer.merge(mesh)
         # Cube Face 2
-        mesh.translate(0.0, 0.5, 0.0)
+        mesh.translate(0.0, -0.5, 0.0)
         mesh.rotate(180, 1, 0, 0)
-        mesh.translate(0.0, 0.5, 0.0)
+        mesh.translate(0.0, -0.5, 0.0)
         self.meshcontainer.merge(mesh)
         # Cube Face 3
-        mesh.translate(0.0, -0.5, 0.0)
+        mesh.translate(0.0, 0.5, 0.0)
         mesh.rotate(90, 1, 0, 0)
-        mesh.translate(0.0, 0.0, 0.5)
+        mesh.translate(0.0, 0.0, -0.5)
         self.meshcontainer.merge(mesh)
         # Cube Face 4
-        mesh.translate(0.0, 0.0, -0.5)
-        mesh.rotate(90, 0, 1, 0)
-        mesh.translate(0.5, 0.0, 0.0)
-        self.meshcontainer.merge(mesh)
-        # Cube Face 5
-        mesh.translate(-0.5,  0.0, 0.0)
-        mesh.rotate(90, 0, 1, 0)
-        mesh.translate(0.0, 0.0, -0.5)
-        self.meshcontainer.merge(mesh)
-        # Cube Face 6
         mesh.translate(0.0, 0.0, 0.5)
         mesh.rotate(90, 0, 1, 0)
         mesh.translate(-0.5, 0.0, 0.0)
+        self.meshcontainer.merge(mesh)
+        # Cube Face 5
+        mesh.translate(0.5,  0.0, 0.0)
+        mesh.rotate(90, 0, 1, 0)
+        mesh.translate(0.0, 0.0, 0.5)
+        self.meshcontainer.merge(mesh)
+        # Cube Face 6
+        mesh.translate(0.0, 0.0, -0.5)
+        mesh.rotate(90, 0, 1, 0)
+        mesh.translate(0.5, 0.0, 0.0)
         self.meshcontainer.merge(mesh)
 
     #########################################################################
@@ -157,9 +157,9 @@ class MeshGenerator():
 if __name__ == "__main__": # if run standalone
     mesh = MeshContainer.MeshContainer()
     meshgen = MeshGenerator(mesh)
-    #meshgen.createCube(LOD=1)
+    meshgen.createCube(LOD=1)
     #meshgen.createCylinder(0.25, 0.75, LOD=10, end1=True, end2=True)
-    meshgen.createSphere(LOD=15)
+    #meshgen.createSphere(LOD=15)
     meshio = MeshIO.MeshIO(mesh)
     meshio.toFile("./Plane.mesh.xml", overwrite=True)
 
