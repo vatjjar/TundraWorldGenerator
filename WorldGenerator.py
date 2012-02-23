@@ -204,6 +204,26 @@ class WorldGenerator():
         self.__pushAttributeDictionary("EC_WaterPlane", d, parameters)
         self.TXML.endComponent()
 
+    def createComponent_Environmentlight(self, sync, parameters={}):
+        d = { "Sunlight color"                  :"0.63 0.63 0.63 1.0",
+              "Ambient light color"             :"0.36 0.36 0.36 1.0",
+              "Sunlight diffuse color"          :"0.93 0.93 0.93 1.0",
+              "Sunlight direction vector"       :"-1.0 -1.0 -1.0",
+              "Sunlight cast shadows"           :"true" }
+        self.TXML.startComponent("EC_EnvironmentLight", str(sync))
+        self.__pushAttributeDictionary("EC_EnvironmentLight", d, parameters)
+        self.TXML.endComponent()
+
+    def createComponent_Sky(self, sync, parameters={}):
+        d = { "Material"                        :"RexSkyBox",
+              "Texture"                         :"rex_sky_front.dds;rex_sky_back.dds;rex_sky_left.dds;rex_sky_right.dds;rex_sky_top.dds;rex_sky_bot.dds",
+              "Distance"                        :"50",
+              "Orientation"                     :"0.0 0.0 0.0 1.0",
+              "Draw first"                      :"true" }
+        self.TXML.startComponent("EC_Sky", str(sync))
+        self.__pushAttributeDictionary("EC_Sky", d, parameters)
+        self.TXML.endComponent()
+
 
     ###########################################################################
     # Dynamic component creation
@@ -223,6 +243,7 @@ class WorldGenerator():
     # - Terrain
     # - Static mesh
     # - Water plane
+    # - Simple Sky (Environmentlight + Sky)
     #
     def createEntity_Terrain(self, sync, name, transform="0,0,0,0,0,0,1,1,1", width=1, height=1, material="", heightmap=""):
         self.TXML.startEntity()
@@ -255,6 +276,22 @@ class WorldGenerator():
         self.TXML.endEntity()
 
 
+
+    def createEntity_Avatar(self, sync, name, script):
+        self.TXML.startEntity()
+        self.createComponent_Name(sync, { "name"            :str(name) } )
+        self.createComponent_Script(sync, { "Script ref"    :str(script),
+                                            "Run on load"   :"true",
+                                            "Script application name":"AvatarApp" } )
+        self.TXML.endEntity()
+
+    def createEntity_SimpleSky(self, sync, name):
+        self.TXML.startEntity()
+        self.createComponent_Name(sync, { "name":str(name) } )
+        self.createComponent_Environmentlight(sync)
+        self.createComponent_Sky(sync)
+        self.TXML.endEntity()
+
     ###########################################################################
     # Following methods are obsolete, and will be removed once cleanups are
     # performed
@@ -265,45 +302,6 @@ class WorldGenerator():
         for i in materials:
             m_str += (str(reference) + i + ";")
         return m_str
-
-    def create_avatar(self, reference, script):
-        self.TXML.startEntity()
-        self.TXML.startComponent("EC_Script", "1")
-        self.TXML.createAttribute("Script ref", str(script))
-        self.TXML.createAttribute("Run on load", "true")
-        self.TXML.createAttribute("Run mode", "0")
-        self.TXML.createAttribute("Script application name", "AvatarApp")
-        self.TXML.createAttribute("Script class name", "")
-        #self.TXML.createAttribute("Type", "js")
-        #self.TXML.createAttribute("Script ref", str(reference) + str(script))
-        self.TXML.endComponent()
-        self.create_component_name("AvatarApp"+str(self.TXML.getCurrentEntityID()), "")
-        self.TXML.endEntity()
-
-    def create_sky(self):
-        self.TXML.startEntity()
-        self.create_component_name("Sky"+str(self.TXML.getCurrentEntityID()), "")
-        self.TXML.startComponent("EC_EnvironmentLight", "1")
-        self.TXML.createAttribute("Sunlight color", "0.638999999 0.638999999 0.638999999 1")
-        self.TXML.createAttribute("Ambient light color", "0.363999993 0.363999993 0.363999993 1")
-        self.TXML.createAttribute("Sunlight diffuse color", "0.930000007 0.930000007 0.930000007 1")
-        self.TXML.createAttribute("Sunlight direction vector", "-1.000000 -1.000000 -1.000000")
-        self.TXML.createAttribute("Sunlight cast shadows", "true")
-        self.TXML.endComponent()
-        self.TXML.startComponent("EC_Sky", "1")
-        self.TXML.createAttribute("Material", "RexSkyBox")
-        self.TXML.createAttribute("Texture", "rex_sky_front.dds;rex_sky_back.dds;rex_sky_left.dds;rex_sky_right.dds;rex_sky_top.dds;rex_sky_bot.dds")
-        self.TXML.createAttribute("Distance", "50")
-        self.TXML.createAttribute("Orientation", "0.000000 0.000000 0.000000 1.000000")
-        self.TXML.createAttribute("Draw first", "true")
-        self.TXML.endComponent()
-        self.TXML.endEntity()
-
-    def create_freelookcameraspawnpos(self, transform):
-        self.TXML.startEntity()
-        self.create_component_name("FreeLookCameraSpawnPos", "")
-        self.create_component_placeable(transform)
-        self.TXML.endEntity()
 
     def create_hydrax_and_skyx(self):
         self.TXML.startEntity()
@@ -372,7 +370,8 @@ if __name__ == "__main__": # if run standalone
 
     world.createEntity_Terrain(1, "terrain", transform="%d,0,%d,0,0,0,1,1,1"%(-width*8, -height*8), width=width, height=height, material="terrainsample.material", heightmap="terrain.ntf")
     world.createEntity_Waterplane(1, "waterplane", width*world.cPatchSize, height*world.cPatchSize, -1)
-    #world.create_avatar("local://", "avatarapplication.js")
+    world.createEntity_Avatar(1, "AvatarApp", "avatarapplication.js;simpleavatar.js;exampleavataraddon.js")
+    world.createEntity_SimpleSky(1, "SimpleSky")
 
     print ("Generating a group of meshes to the world...")
     mesh = MeshContainer.MeshContainer()
