@@ -187,13 +187,13 @@ class MeshContainer():
                 self.vertices[i*3+0] = vr[0]
                 self.vertices[i*3+1] = vr[1]
                 self.vertices[i*3+2] = vr[2]
-            for j in xrange(3):
-                vr[j] = mat[j][0]*self.normals[i*3+0] + \
-                        mat[j][1]*self.normals[i*3+1] + \
-                        mat[j][2]*self.normals[i*3+2]
-            self.normals[i*3+0] = vr[0]
-            self.normals[i*3+1] = vr[1]
-            self.normals[i*3+2] = vr[2]
+                for j in xrange(3):
+                    vr[j] = mat[j][0]*self.normals[i*3+0] + \
+                            mat[j][1]*self.normals[i*3+1] + \
+                            mat[j][2]*self.normals[i*3+2]
+                self.normals[i*3+0] = vr[0]
+                self.normals[i*3+1] = vr[1]
+                self.normals[i*3+2] = vr[2]
 
         def merge(self, vertexbuffer):
             self.__message("VertexBuffer: merge")
