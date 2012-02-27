@@ -9,6 +9,73 @@ import os
 import sys
 
 ##########################################################################
+# Class MaterialContainer
+#
+class MaterialContainer():
+    def __init__(self):
+        self.reset()
+
+    def reset(self):
+        self.materials = []
+
+    def addMaterial(self, material):
+        self.materials.append(material)
+
+    def getMaterials(self):
+        return self.materials
+
+    def toFile(self, filename, overwrite=False, append=True, LOD=5):
+        for m in self.materials:
+            m.toFile(filename, overwrite=overwrite, append=append, LOD=LOD)
+
+    def fromFile(self, filename):
+        self.reset()
+        try: f = open(filename, "r")
+        except IOError:
+            print "MeshContainer: Error opening file %s" % filename
+            return
+        material = None
+        lastObject = ""
+        while 1:
+            line = f.readline()
+            if len(line) == 0: break
+            l = line.strip().split(" ")
+            try: key = l[0]
+            except IOError: continue
+            try: name = l[1].strip()
+            except IndexError: name = ""
+
+            if key == "material":
+                material = Material(l[1])
+                self.materials.append(material)
+                lastObject = key
+            elif key == "technique":
+                material.addTechnique(name)
+                lastObject = key
+            elif key == "pass":
+                material.addPass(name)
+                lastObject = key
+            elif key == "vertex_program_ref":
+                material.addVertexprogram(name)
+                lastObject = key
+            elif key == "fragment_program_ref":
+                material.addFragmentprogram(name)
+                lastObject = key
+            elif key == "texture_unit":
+                material.addTextureunit(name)
+                lastObject = key
+            elif key == "{": pass
+            elif key == "}":
+                lastObject = ""
+            else:
+                # regular parameters into last defined unit
+                d = { key:" ".join(l[1:]) }
+                if lastObject == "pass":
+                    material.addPassParameters(d)
+                elif lastObject == "texture_unit":
+                    material.addTextureunitParameters(d)
+
+##########################################################################
 # Class Material
 #
 class Material():
@@ -26,6 +93,8 @@ class Material():
     # - Technique
     # - Pass
     # - TextureUnit
+    # - Vertexshader
+    # - Fragmentshader
     #
     class Technique():
         def __init__(self, parentmaterial, name=""):
@@ -65,10 +134,10 @@ class Material():
             self.parentmaterial.decreaseIndent()
             self.parentmaterial.writeMaterialString("}")
 
-        def outputTechnique(self):
+        def outputTechnique(self, LOD=5):
             for p in self.passes:
                 p.startPass()
-                p.outputPass()
+                p.outputPass(LOD=LOD)
                 p.endPass()
 
     ##########################################################################
@@ -89,10 +158,11 @@ class Material():
         def addPassParameters(self, d):
             valid = [ "ambient", "diffuse" ]
             for key, value in d.items():
+                if key == "": continue # Suppress cosmetic warning
                 if key in valid:
                     self.currentparams[key] = value
                 else:
-                    print "Trying to set param '%s' for current Pass, but it is not a valid parameter" % key
+                    print "Warning: Trying to set param '%s' for current Pass, but it is not a valid parameter" % key
 
         def addTextureunit(self, t_unit):
             self.textureunits.append(t_unit)
@@ -118,20 +188,20 @@ class Material():
             self.parentmaterial.decreaseIndent()
             self.parentmaterial.writeMaterialString("}")
 
-        def outputPass(self):
+        def outputPass(self, LOD=5):
             for key, value in self.currentparams.items():
                 self.parentmaterial.writeMaterialString("%s %s" % (key, value))
             for vp in self.vertexprograms:
                 vp.startVertexprogram()
-                vp.outputVertexprogram()
+                vp.outputVertexprogram(LOD=LOD)
                 vp.endVertexprogram()
             for fp in self.fragmentprograms:
                 fp.startFragmentprogram()
-                fp.outputFragmentprogram()
+                fp.outputFragmentprogram(LOD=LOD)
                 fp.endFragmentprogram()
             for t in self.textureunits:
                 t.startTextureunit()
-                t.outputTextureunit()
+                t.outputTextureunit(LOD=LOD)
                 t.endTextureunit()
 
     ##########################################################################
@@ -146,6 +216,7 @@ class Material():
         def addVertexprogramParameters(self, d):
             valid = [ ]
             for key, value in d.items():
+                if key == "": continue # Suppress cosmetic warning
                 if key in valid:
                     self.currentparams[key] = value
                 else:
@@ -160,7 +231,7 @@ class Material():
             self.parentmaterial.decreaseIndent()
             self.parentmaterial.writeMaterialString("}")
 
-        def outputVertexprogram(self):
+        def outputVertexprogram(self, LOD=5):
             for key, value in self.currentparams.items():
                 self.parentmaterial.writeMaterialString("%s %s" % (key, value))
 
@@ -176,6 +247,7 @@ class Material():
         def addFragmentprogramParameters(self, d):
             valid = [ ]
             for key, value in d.items():
+                if key == "": continue # Suppress cosmetic warning
                 if key in valid:
                     self.currentparams[key] = value
                 else:
@@ -190,7 +262,7 @@ class Material():
             self.parentmaterial.decreaseIndent()
             self.parentmaterial.writeMaterialString("}")
 
-        def outputFragmentprogram(self):
+        def outputFragmentprogram(self, LOD=5):
             for key, value in self.currentparams.items():
                 self.parentmaterial.writeMaterialString("%s %s" % (key, value))
 
@@ -202,12 +274,23 @@ class Material():
             self.parentmaterial = parentmaterial
             self.name = name
             self.currentparams = {}
+            self.lod1_params = [ "texture", "texture_alias", "content_type" ]
+            self.lod2_params = [ "wave_xform", "colour_op" ]
+            self.lod3_params = [ "tex_address_mode" ]
+            self.lod4_params = [ "rotate_anim" ]
+            self.lod5_params = [ "scroll_anim" ]
+            self.all_params  = " ".join(self.lod1_params)
+            self.all_params += (" " + " ".join(self.lod2_params))
+            self.all_params += (" " + " ".join(self.lod3_params))
+            self.all_params += (" " + " ".join(self.lod4_params))
+            self.all_params += (" " + " ".join(self.lod5_params))
 
         def addTextureunitParameters(self, d):
             valid = [ "texture", "wave_xform", "scroll_anim", "rotate_anim", "colour_op",
                       "texture_alias", "tex_address_mode", "content_type" ]
             for key, value in d.items():
-                if key in valid:
+                if key == "": continue # Suppress cosmetic warning
+                if key in self.all_params:
                     self.currentparams[key] = value
                 else:
                     print "Trying to set param '%s' for current Texture_unit, but it is not a valid parameter" % key
@@ -221,9 +304,15 @@ class Material():
             self.parentmaterial.decreaseIndent()
             self.parentmaterial.writeMaterialString("}")
 
-        def outputTextureunit(self):
+        def outputTextureunit(self, LOD=5):
+            valid = " ".join(self.lod1_params)
+            if LOD >= 2: valid += (" " + " ".join(self.lod2_params))
+            if LOD >= 3: valid += (" " + " ".join(self.lod3_params))
+            if LOD >= 4: valid += (" " + " ".join(self.lod4_params))
+            if LOD >= 5: valid += (" " + " ".join(self.lod5_params))
             for key, value in self.currentparams.items():
-                self.parentmaterial.writeMaterialString("%s %s" % (key, value))
+                if key in valid:
+                    self.parentmaterial.writeMaterialString("%s %s" % (key, value))
 
     ##########################################################################
     # Material class private methods
@@ -251,21 +340,23 @@ class Material():
     ##########################################################################
     # Material generator API
     #
-    def toFile(self, filename, overwrite=False):
+    def toFile(self, filename, overwrite=False, append=False, LOD=5):
         if os.path.exists(filename):
-            if overwrite == False:
+            if overwrite == False and append == False:
                 sys.stderr.write("MaterialGenerator: ERROR: output file '%s' already exists!\n" % filename)
                 return
-            else:
+            elif overwrite == True:
                 os.remove(filename)
-        try: self.file = open(filename, "w")
+        filemode = "w"
+        if append == True: filemode = "a"
+        try: self.file = open(filename, filemode)
         except IOError:
             sys.stderr.write("MaterialGenerator: ERROR: Unable to open file '%s' for writing!" % filename)
             return
         self.__startMaterial()
         for t in self.techniques:
             t.startTechnique()
-            t.outputTechnique()
+            t.outputTechnique(LOD=LOD)
             t.endTechnique()
         self.__endMaterial()
         self.file.close()
@@ -341,7 +432,7 @@ class Material():
         m.addTextureunit("shadowMap2")
 
 ##########################################################################
-# Matrial unit testacse
+# Material unit testacase
 #
 if __name__ == "__main__":
     m = Material("testmaterial")
@@ -359,5 +450,11 @@ if __name__ == "__main__":
     m.createMaterial_Diffuseonly("diffuse")
     m.toFile("./resources/diffuseonly.material", overwrite=True)
     m.createMaterial_Textureonly("textureonly", "tex.png")
-    m.toFile("./resources/textureonly.material")
+    m.toFile("./resources/textureonly.material", overwrite=True)
+
+    mc = MaterialContainer()
+    mc.fromFile("./resources/terrainsample.material")
+    mc.toFile("./resources/terrainsample2.material", overwrite=True, append=True, LOD=5)
+    mc.fromFile("./resources/twinmaterial.material")
+    mc.toFile("./resources/twinmaterial2.material", overwrite=False, append=True, LOD=5)
     print "Done"
