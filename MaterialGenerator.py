@@ -73,6 +73,10 @@ class MaterialContainer():
                 d = { key:" ".join(l[1:]) }
                 if lastObject == "pass":
                     material.addPassParameters(d)
+                elif lastObject == "material":
+                    material.addMaterialParameters(d)
+                elif lastObject == "technique":
+                    material.addTechniqueParameters(d)
                 elif lastObject == "texture_unit":
                     material.addTextureunitParameters(d)
                 elif lastObject == "fragment_program_ref":
@@ -92,6 +96,17 @@ class Material():
         self.techniques = []
         self.currenttechnique = None
         self.indent = 0
+        self.currentparams = {}
+        self.lod1_params = [ ]
+        self.lod2_params = [ ]
+        self.lod3_params = [ ]
+        self.lod4_params = [ ]
+        self.lod5_params = [ "receive_shadows" ]
+        self.all_params  = " ".join(self.lod1_params)
+        self.all_params += (" " + " ".join(self.lod2_params))
+        self.all_params += (" " + " ".join(self.lod3_params))
+        self.all_params += (" " + " ".join(self.lod4_params))
+        self.all_params += (" " + " ".join(self.lod5_params))
 
     ##########################################################################
     # Subclasses for the material definition
@@ -107,6 +122,17 @@ class Material():
             self.passes = []
             self.currentpass = None
             self.name = name
+            self.currentparams = {}
+            self.lod1_params = [ ]
+            self.lod2_params = [ ]
+            self.lod3_params = [ ]
+            self.lod4_params = [ ]
+            self.lod5_params = [ ]
+            self.all_params  = " ".join(self.lod1_params)
+            self.all_params += (" " + " ".join(self.lod2_params))
+            self.all_params += (" " + " ".join(self.lod3_params))
+            self.all_params += (" " + " ".join(self.lod4_params))
+            self.all_params += (" " + " ".join(self.lod5_params))
 
         def addPass(self, p):
             self.passes.append(p)
@@ -133,6 +159,14 @@ class Material():
         def addFragmentprogramParameters(self, d):
             self.currentpass.addFragmentprogramParameters(d)
 
+        def addTechniqueParameters(self, d):
+            for key, value in d.items():
+                if key == "": continue # Suppress cosmetic warning
+                if key in self.all_params:
+                    self.currentparams[key] = value
+                else:
+                    print "Warning: Trying to set param '%s' for current Technique, but it is not a valid parameter" % key
+
         ##########################################################################
         # Technique output methods
         #
@@ -146,6 +180,14 @@ class Material():
             self.parentmaterial.writeMaterialString("}")
 
         def outputTechnique(self, LOD=5):
+            valid = " ".join(self.lod1_params)
+            if LOD >= 2: valid += (" " + " ".join(self.lod2_params))
+            if LOD >= 3: valid += (" " + " ".join(self.lod3_params))
+            if LOD >= 4: valid += (" " + " ".join(self.lod4_params))
+            if LOD >= 5: valid += (" " + " ".join(self.lod5_params))
+            for key, value in self.currentparams.items():
+                if key in valid:
+                    self.parentmaterial.writeMaterialString("%s %s" % (key, value))
             for p in self.passes:
                 p.startPass()
                 p.outputPass(LOD=LOD)
@@ -165,11 +207,11 @@ class Material():
             self.currenttextureunit = None
             self.currentvertexprogram = None
             self.currentfragmentprogram = None
-            self.lod1_params = [ "ambient", "diffuse", "cull_hardware" ]
-            self.lod2_params = [ "specular", "emissive" ]
+            self.lod1_params = [ "ambient", "diffuse", "cull_hardware", "depth_check" ]
+            self.lod2_params = [ "specular", "emissive", "polygon_mode" ]
             self.lod3_params = [ "scene_blend", "depth_write" ]
             self.lod4_params = [ "lighting", "alpha_rejection", "iteration" ]
-            self.lod5_params = [ "cull_software" ]
+            self.lod5_params = [ "cull_software", "fog_override" ]
             self.all_params  = " ".join(self.lod1_params)
             self.all_params += (" " + " ".join(self.lod2_params))
             self.all_params += (" " + " ".join(self.lod3_params))
@@ -413,7 +455,17 @@ class Material():
         except IOError:
             sys.stderr.write("MaterialGenerator: ERROR: Unable to open file '%s' for writing!" % filename)
             return
+
         self.__startMaterial()
+        valid = " ".join(self.lod1_params)
+        if LOD >= 2: valid += (" " + " ".join(self.lod2_params))
+        if LOD >= 3: valid += (" " + " ".join(self.lod3_params))
+        if LOD >= 4: valid += (" " + " ".join(self.lod4_params))
+        if LOD >= 5: valid += (" " + " ".join(self.lod5_params))
+        for key, value in self.currentparams.items():
+            if key in valid:
+                self.writeMaterialString("%s %s" % (key, value))
+
         for t in self.techniques:
             t.startTechnique()
             t.outputTechnique(LOD=LOD)
@@ -421,10 +473,21 @@ class Material():
         self.__endMaterial()
         self.file.close()
 
+    def addMaterialParameters(self, d):
+        for key, value in d.items():
+            if key == "": continue # Suppress cosmetic warning
+            if key in self.all_params:
+                self.currentparams[key] = value
+            else:
+                print "Warning: Trying to set param '%s' for current Material, but it is not a valid parameter" % key
+
     def addTechnique(self, name=""):
         t = Material.Technique(self, name=name)
         self.techniques.append(t)
         self.currenttechnique = t
+
+    def addTechniqueParameters(self, d={}):
+        self.currenttechnique.addTechniqueParameters(d)
 
     def addPass(self, name=""):
         p = Material.Pass(self)
@@ -462,40 +525,39 @@ class Material():
     #
     def createMaterial_Diffuseonly(self, name, diffusecolor="1.0 1.0 1.0"):
         self.reset(name)
-        m.addTechnique()
-        m.addPass()
-        m.addPassParameters({"diffuse":diffusecolor})
+        self.addTechnique()
+        self.addPass()
+        self.addPassParameters({"diffuse":diffusecolor})
 
     def createMaterial_Textureonly(self, name, texture, diffusecolor="1.0 1.0 1.0", ambientcolor="0.5 0.5 0.5"):
         self.reset(name)
-        m.addTechnique()
-        m.addPass()
-        m.addPassParameters({"diffuse":diffusecolor, "ambient":ambientcolor})
-        m.addTextureunit(texture)
+        self.addTechnique()
+        self.addPass()
+        self.addPassParameters({"diffuse":diffusecolor, "ambient":ambientcolor})
+        self.addTextureunit(texture)
 
     def createMaterial_4channelTerrain(self, name, t1, t2, t3, t4, weightmap):
         self.reset(name)
-        self.name = name
-        m.addTechnique("TerrainPCF")
-        m.addPass()
-        m.addPassParameters({"ambient":"0.0 0.0 0.0 1.0"})
-        m.addVertexprogram("Rex/TerrainPCFVS_weighted")
-        m.addFragmentprogram("Rex/TerrainPCFFS_weighted")
-        m.addTextureunit("weights")
-        m.addTextureunitParameters({"texture_alias":"weights", "texture":weightmap})
-        m.addTextureunit("detail0")
-        m.addTextureunitParameters({"texture_alias":"detail0", "texture":t1})
-        m.addTextureunit("detail1")
-        m.addTextureunitParameters({"texture_alias":"detail1", "texture":t2})
-        m.addTextureunit("detail2")
-        m.addTextureunitParameters({"texture_alias":"detail2", "texture":t3})
-        m.addTextureunit("detail3")
-        m.addTextureunitParameters({"texture_alias":"detail3", "texture":t4})
-        m.addTextureunit("shadowMap0")
-        m.addTextureunitParameters({"texture_alias":"shadowMap0", "tex_address_mode":"clamp", "content_type":"shadow"})
-        m.addTextureunit("shadowMap1")
-        m.addTextureunitParameters({"texture_alias":"shadowMap1", "tex_address_mode":"clamp", "content_type":"shadow"})
-        m.addTextureunit("shadowMap2")
+        self.addTechnique("TerrainPCF")
+        self.addPass()
+        self.addPassParameters({"ambient":"0.0 0.0 0.0 1.0"})
+        self.addVertexprogram("Rex/TerrainPCFVS_weighted")
+        self.addFragmentprogram("Rex/TerrainPCFFS_weighted")
+        self.addTextureunit("weights")
+        self.addTextureunitParameters({"texture_alias":"weights", "texture":weightmap})
+        self.addTextureunit("detail0")
+        self.addTextureunitParameters({"texture_alias":"detail0", "texture":t1})
+        self.addTextureunit("detail1")
+        self.addTextureunitParameters({"texture_alias":"detail1", "texture":t2})
+        self.addTextureunit("detail2")
+        self.addTextureunitParameters({"texture_alias":"detail2", "texture":t3})
+        self.addTextureunit("detail3")
+        self.addTextureunitParameters({"texture_alias":"detail3", "texture":t4})
+        self.addTextureunit("shadowMap0")
+        self.addTextureunitParameters({"texture_alias":"shadowMap0", "tex_address_mode":"clamp", "content_type":"shadow"})
+        self.addTextureunit("shadowMap1")
+        self.addTextureunitParameters({"texture_alias":"shadowMap1", "tex_address_mode":"clamp", "content_type":"shadow"})
+        self.addTextureunit("shadowMap2")
 
 ##########################################################################
 # Material unit testacase
