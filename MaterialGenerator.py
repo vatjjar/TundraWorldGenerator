@@ -67,6 +67,7 @@ class MaterialContainer():
             elif key == "{": pass
             elif key == "}":
                 lastObject = ""
+            elif key.startswith("//"): pass
             else:
                 # regular parameters into last defined unit
                 d = { key:" ".join(l[1:]) }
@@ -74,6 +75,10 @@ class MaterialContainer():
                     material.addPassParameters(d)
                 elif lastObject == "texture_unit":
                     material.addTextureunitParameters(d)
+                elif lastObject == "fragment_program_ref":
+                    material.addFragmentprogramParameters(d)
+                elif lastObject == "vertex_program_ref":
+                    material.addVertexprogramParameters(d)
 
 ##########################################################################
 # Class Material
@@ -119,8 +124,14 @@ class Material():
         def addVertexprogram(self, vp):
             self.currentpass.addVertexprogram(vp)
 
+        def addVertexprogramParameters(self, d):
+            self.currentpass.addVertexprogramParameters(d)
+
         def addFragmentprogram(self, fp):
             self.currentpass.addFragmentprogram(fp)
+
+        def addFragmentprogramParameters(self, d):
+            self.currentpass.addFragmentprogramParameters(d)
 
         ##########################################################################
         # Technique output methods
@@ -154,12 +165,21 @@ class Material():
             self.currenttextureunit = None
             self.currentvertexprogram = None
             self.currentfragmentprogram = None
+            self.lod1_params = [ "ambient", "diffuse", "cull_hardware" ]
+            self.lod2_params = [ "specular", "emissive" ]
+            self.lod3_params = [ "scene_blend", "depth_write" ]
+            self.lod4_params = [ "lighting", "alpha_rejection", "iteration" ]
+            self.lod5_params = [ "cull_software" ]
+            self.all_params  = " ".join(self.lod1_params)
+            self.all_params += (" " + " ".join(self.lod2_params))
+            self.all_params += (" " + " ".join(self.lod3_params))
+            self.all_params += (" " + " ".join(self.lod4_params))
+            self.all_params += (" " + " ".join(self.lod5_params))
 
         def addPassParameters(self, d):
-            valid = [ "ambient", "diffuse" ]
             for key, value in d.items():
                 if key == "": continue # Suppress cosmetic warning
-                if key in valid:
+                if key in self.all_params:
                     self.currentparams[key] = value
                 else:
                     print "Warning: Trying to set param '%s' for current Pass, but it is not a valid parameter" % key
@@ -175,9 +195,15 @@ class Material():
             self.vertexprograms.append(vp)
             self.currentvertexprogram = vp
 
+        def addVertexprogramParameters(self, d):
+            self.currentvertexprogram.addVertexprogramParameters(d)
+
         def addFragmentprogram(self, fp):
             self.fragmentprograms.append(fp)
             self.currentfragmentprogram = fp
+
+        def addFragmentprogramParameters(self, d):
+            self.currentfragmentprogram.addFragmentprogramParameters(d)
 
         def startPass(self):
             self.parentmaterial.writeMaterialString("pass %s" % self.name)
@@ -189,8 +215,14 @@ class Material():
             self.parentmaterial.writeMaterialString("}")
 
         def outputPass(self, LOD=5):
+            valid = " ".join(self.lod1_params)
+            if LOD >= 2: valid += (" " + " ".join(self.lod2_params))
+            if LOD >= 3: valid += (" " + " ".join(self.lod3_params))
+            if LOD >= 4: valid += (" " + " ".join(self.lod4_params))
+            if LOD >= 5: valid += (" " + " ".join(self.lod5_params))
             for key, value in self.currentparams.items():
-                self.parentmaterial.writeMaterialString("%s %s" % (key, value))
+                if key in valid:
+                    self.parentmaterial.writeMaterialString("%s %s" % (key, value))
             for vp in self.vertexprograms:
                 vp.startVertexprogram()
                 vp.outputVertexprogram(LOD=LOD)
@@ -212,12 +244,21 @@ class Material():
             self.name = name
             self.parentmaterial = parentmaterial
             self.currentparams = {}
+            self.lod1_params = [ "param_named", "param_named_auto" ]
+            self.lod2_params = [ ]
+            self.lod3_params = [ ]
+            self.lod4_params = [ ]
+            self.lod5_params = [ ]
+            self.all_params  = " ".join(self.lod1_params)
+            self.all_params += (" " + " ".join(self.lod2_params))
+            self.all_params += (" " + " ".join(self.lod3_params))
+            self.all_params += (" " + " ".join(self.lod4_params))
+            self.all_params += (" " + " ".join(self.lod5_params))
 
         def addVertexprogramParameters(self, d):
-            valid = [ ]
             for key, value in d.items():
                 if key == "": continue # Suppress cosmetic warning
-                if key in valid:
+                if key in self.all_params:
                     self.currentparams[key] = value
                 else:
                     print "Trying to set param '%s' for current Vertexprogram, but it is not a valid parameter" % key
@@ -232,8 +273,14 @@ class Material():
             self.parentmaterial.writeMaterialString("}")
 
         def outputVertexprogram(self, LOD=5):
+            valid = " ".join(self.lod1_params)
+            if LOD >= 2: valid += (" " + " ".join(self.lod2_params))
+            if LOD >= 3: valid += (" " + " ".join(self.lod3_params))
+            if LOD >= 4: valid += (" " + " ".join(self.lod4_params))
+            if LOD >= 5: valid += (" " + " ".join(self.lod5_params))
             for key, value in self.currentparams.items():
-                self.parentmaterial.writeMaterialString("%s %s" % (key, value))
+                if key in valid:
+                    self.parentmaterial.writeMaterialString("%s %s" % (key, value))
 
     ##########################################################################
     # Fragmentprogram Subclass
@@ -243,12 +290,21 @@ class Material():
             self.name = name
             self.parentmaterial = parentmaterial
             self.currentparams = {}
+            self.lod1_params = [ "param_named", "param_named_auto" ]
+            self.lod2_params = [ ]
+            self.lod3_params = [ ]
+            self.lod4_params = [ ]
+            self.lod5_params = [ ]
+            self.all_params  = " ".join(self.lod1_params)
+            self.all_params += (" " + " ".join(self.lod2_params))
+            self.all_params += (" " + " ".join(self.lod3_params))
+            self.all_params += (" " + " ".join(self.lod4_params))
+            self.all_params += (" " + " ".join(self.lod5_params))
 
         def addFragmentprogramParameters(self, d):
-            valid = [ ]
             for key, value in d.items():
                 if key == "": continue # Suppress cosmetic warning
-                if key in valid:
+                if key in self.all_params:
                     self.currentparams[key] = value
                 else:
                     print "Trying to set param '%s' for current Fragmentprogram, but it is not a valid parameter" % key
@@ -263,8 +319,14 @@ class Material():
             self.parentmaterial.writeMaterialString("}")
 
         def outputFragmentprogram(self, LOD=5):
+            valid = " ".join(self.lod1_params)
+            if LOD >= 2: valid += (" " + " ".join(self.lod2_params))
+            if LOD >= 3: valid += (" " + " ".join(self.lod3_params))
+            if LOD >= 4: valid += (" " + " ".join(self.lod4_params))
+            if LOD >= 5: valid += (" " + " ".join(self.lod5_params))
             for key, value in self.currentparams.items():
-                self.parentmaterial.writeMaterialString("%s %s" % (key, value))
+                if key in valid:
+                    self.parentmaterial.writeMaterialString("%s %s" % (key, value))
 
     ##########################################################################
     # Textureunit Subclass
@@ -274,11 +336,11 @@ class Material():
             self.parentmaterial = parentmaterial
             self.name = name
             self.currentparams = {}
-            self.lod1_params = [ "texture", "texture_alias", "content_type" ]
-            self.lod2_params = [ "wave_xform", "colour_op" ]
-            self.lod3_params = [ "tex_address_mode" ]
-            self.lod4_params = [ "rotate_anim" ]
-            self.lod5_params = [ "scroll_anim" ]
+            self.lod1_params = [ "texture", "texture_alias", "content_type", "scale" ]
+            self.lod2_params = [ "wave_xform", "colour_op", "tex_coord_set" ]
+            self.lod3_params = [ "tex_address_mode", "filtering", "cubic_texture" ]
+            self.lod4_params = [ "rotate_anim", "cubic_texture" ]
+            self.lod5_params = [ "scroll_anim", "alpha_op_ex", "colour_op_ex", "env_map" ]
             self.all_params  = " ".join(self.lod1_params)
             self.all_params += (" " + " ".join(self.lod2_params))
             self.all_params += (" " + " ".join(self.lod3_params))
@@ -286,8 +348,6 @@ class Material():
             self.all_params += (" " + " ".join(self.lod5_params))
 
         def addTextureunitParameters(self, d):
-            valid = [ "texture", "wave_xform", "scroll_anim", "rotate_anim", "colour_op",
-                      "texture_alias", "tex_address_mode", "content_type" ]
             for key, value in d.items():
                 if key == "": continue # Suppress cosmetic warning
                 if key in self.all_params:
@@ -384,9 +444,15 @@ class Material():
         vp = Material.Vertexprogram(self, name=name)
         self.currenttechnique.addVertexprogram(vp)
 
+    def addVertexprogramParameters(self, d={}):
+        self.currenttechnique.addVertexprogramParameters(d)
+
     def addFragmentprogram(self, name=""):
         fp = Material.Fragmentprogram(self, name=name)
         self.currenttechnique.addFragmentprogram(fp)
+
+    def addFragmentprogramParameters(self, d={}):
+        self.currenttechnique.addFragmentprogramParameters(d)
 
     ##########################################################################
     # Material generator pre-defined macros for simple generation of certain
