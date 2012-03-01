@@ -71,7 +71,14 @@ class TerrainGenerator():
 #
 
     def fromFile(self, filename):
-        """ TerrainGenerator.fromFile(filename)
+        if filename.endswith(".ntf"):
+            return self.__fromNTFFile(filenmae)
+        if filename.endswith(".asc"):
+            return self.__fromASCFile(filename)
+        return False
+
+    def __fromNTFFile(self, filename):
+        """ TerrainGenerator.__fromNTFFile(filename)
             - Loads a terrain definition from NTF file into internal table. File can then be further
               processed, with TerrainGenerator internal methods, or directly manipulating
               self.d_array table.
@@ -95,6 +102,43 @@ class TerrainGenerator():
         f.close()
         self.minvalid = False
         self.maxvalid = False
+        return True
+
+    def __fromASCFile(self, filename):
+        """ TerrainGenerator.__fromASCFile(filename)
+              Return value: True if file input succeeded, otherwise False
+        """
+        try: f = open(filename, "r")
+        except IOError: self.printerror("Requested file %s does not exist." % filename); return False
+
+        # first read the header
+        line = f.readline()
+        cols = int(line.split(" ")[-1].strip())
+        line = f.readline()
+        rows = int(line.split(" ")[-1].strip())
+        f.readline()
+        f.readline()
+        f.readline()
+        line = f.readline()
+        novalue = float(line.split(" ")[-1].strip())
+
+        if rows != cols:
+            print "Warning: Importing ASCII data which is not square shaped!"
+
+        # Setup the terrain
+        self.initialize(((rows/self.cPatchSize)+1), ((cols/self.cPatchSize)+1))
+
+        # Then loop through the file
+        currentRow = 0
+        while 1:
+            line = f.readline()
+            if len(line) == 0: break
+            t = line.split(" ")
+            for c in range(len(t)-1):               # Last mark is linefeed, that is why -1
+                value = float(t[c])
+                if value == novalue: value = 0.0    # reset
+                self.d_array[currentRow][c] = value
+            currentRow += 1
         return True
 
     def toFile(self, filename, overwrite=False):
