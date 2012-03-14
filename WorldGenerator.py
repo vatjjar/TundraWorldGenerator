@@ -61,6 +61,10 @@ class WorldGenerator():
     # - EC_Material
     # - EC_Terrain
     # - EC_WaterPlane
+    # - EC_EnvironmentLight
+    # - EC_Sky
+    # - EC_SkyX
+    # - EC_HydraX
     #
     def createComponent_Rigidbody(self, sync, parameters={}):
         d = { "Mass"                            :"0",
@@ -224,11 +228,37 @@ class WorldGenerator():
         self.__pushAttributeDictionary("EC_Sky", d, parameters)
         self.TXML.endComponent()
 
+    def createComponent_SkyX(self, sync, parameters={}):
+        d = { "Cloud type"                      :"1",
+              "Time multiplier"                 :"0.25",
+              "Time [0-24]"                     :"16.978079",
+              "Time sunrise [0-24]"             :"7.5",
+              "Time sunset [0-24]"              :"20.5",
+              "Cloud coverage [0-100]"          :"50",
+              "Cloud average size [0-100]"      :"50",
+              "Cloud height"                    :"100",
+              "Moon phase [0-100]"              :"70.7420731",
+              "Sun inner radius"                :"9.75",
+              "Sun outer radius"                :"10.25",
+              "Wind direction"                  :"0",
+              "Wind speed"                      :"5" }
+        self.TXML.startComponent("EC_SkyX", str(sync))
+        self.__pushAttributeDictionary("EC_SkyX", d, parameters)
+        self.TXML.endComponent()
+
+    def createComponent_HydraX(self, sync, parameters={}):
+        d = { "Config ref"                      :"HydraxDefault.hdx",
+              "Visible"                         :"true",
+              "Position"                        :"0.0 7.0 0.0" }
+        self.TXML.startComponent("EC_Hydrax", str(sync))
+        self.__pushAttributeDictionary("EC_Hydrax", d, parameters)
+        self.TXML.endComponent()
+
 
     ###########################################################################
     # Dynamic component creation
     #
-    def create_component_dynamiccomponent(self, name, variables):
+    def createComponent_Dynamiccomponent(self, name, variables):
         self.TXML.startComponent("EC_DynamicComponent", sync="1", name=name)
         for var in variables:
             self.TXML.createDynamicAttribute(var[0], var[1], var[2])
@@ -292,41 +322,6 @@ class WorldGenerator():
         self.createComponent_Sky(sync)
         self.TXML.endEntity()
 
-    ###########################################################################
-    # Following methods are obsolete, and will be removed once cleanups are
-    # performed
-    #
-    def insert_materials(self, reference, materials):
-        #self.message("Inserting %d materials with reference %s" % (len(materials), reference))
-        m_str = ""
-        for i in materials:
-            m_str += (str(reference) + i + ";")
-        return m_str
-
-    def create_hydrax_and_skyx(self):
-        self.TXML.startEntity()
-        self.create_component_name("Environment", "")
-        self.TXML.startComponent("EC_SkyX", "1")
-        self.TXML.createAttribute("Cloud type", "1")
-        self.TXML.createAttribute("Time multiplier", "0.25")
-        self.TXML.createAttribute("Time [0-24]", "16.9780979")
-        self.TXML.createAttribute("Time sunrise [0-24]", "7.5")
-        self.TXML.createAttribute("Time sunset [0-24]", "20.5")
-        self.TXML.createAttribute("Cloud coverage [0-100]", "50")
-        self.TXML.createAttribute("Cloud average size [0-100]", "50")
-        self.TXML.createAttribute("Cloud height", "100")
-        self.TXML.createAttribute("Moon phase [0-100]", "70.7420731")
-        self.TXML.createAttribute("Sun inner radius", "9.75")
-        self.TXML.createAttribute("Sun outer radius", "10.25")
-        self.TXML.createAttribute("Wind direction", "0")
-        self.TXML.createAttribute("Wind speed", "5")
-        self.TXML.endComponent()
-        self.TXML.startComponent("EC_Hydrax", "1")
-        self.TXML.createAttribute("Config ref", "HydraxDefault.hdx")
-        self.TXML.createAttribute("Visible", "true")
-        self.TXML.createAttribute("Position", "0.0 7.0 0.0")
-        self.TXML.endComponent()
-        self.TXML.endEntity()
 
 ###########################################################################
 # Unit test case for demonstration of the WorldGenerator
