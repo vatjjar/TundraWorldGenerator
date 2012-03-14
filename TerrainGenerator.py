@@ -72,7 +72,7 @@ class TerrainGenerator():
 
     def fromFile(self, filename):
         if filename.endswith(".ntf"):
-            return self.__fromNTFFile(filenmae)
+            return self.__fromNTFFile(filename)
         if filename.endswith(".asc"):
             return self.__fromASCFile(filename)
         return False
@@ -484,7 +484,7 @@ class TerrainGenerator():
 if __name__ == "__main__":
     # If run standalone, we will run a bunch of test cases
 
-    terrain = TerrainGenerator(16, 16)
+    terrain = TerrainGenerator(16,16)
 
     print "Running input/output test"
     terrain.fromFile("./resources/terrain.ntf")
@@ -498,7 +498,7 @@ if __name__ == "__main__":
     terrain.toSurfaceImage("./resources/terrainsurfaceimage.png", fileformat="PNG", overwrite=True)
 
     print "Running diamond-square with rescale & saturate + generating weightmap"
-    terrain.fromDiamondsquare(32, 10, -5, -5, 10)
+    terrain.fromDiamondsquare(2, 10, -5, -5, 10)
     terrain.rescale(-20, 50)
     terrain.saturate(-5)
     terrain.toFile("./resources/terrain4.ntf", overwrite=True)
