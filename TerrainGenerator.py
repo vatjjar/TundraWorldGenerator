@@ -130,15 +130,22 @@ class TerrainGenerator():
 
         # Then loop through the file
         currentRow = 0
+        currentCol = 0
         while 1:
             line = f.readline()
             if len(line) == 0: break
             t = line.split(" ")
+            #print len(t)
             for c in range(len(t)-1):               # Last mark is linefeed, that is why -1
                 value = float(t[c])
-                if value == novalue: value = 0.0    # reset
-                self.d_array[currentRow][c] = value
-            currentRow += 1
+                if value == novalue: value = 0.0    # Zero for non-defined values
+                self.d_array[currentRow][currentCol] = value
+                currentRow += 1
+                if currentRow == cols:
+                    currentRow = 0
+                    currentCol += 1
+                    if currentCol == rows:
+                        break                       # End of table reached
         return True
 
     def toFile(self, filename, overwrite=False):
@@ -368,6 +375,11 @@ class TerrainGenerator():
         self.minvalid = True
         self.maxvalid = True
         return True
+
+    def adjustHeight(self, delta):
+        for i in range(self.width*self.cPatchSize):
+            for j in range(self.height*self.cPatchSize):
+                self.d_array[i][j] += delta
 
     def quantize(self, level=16):
         """ TerrainGenerator.quantize(level)
