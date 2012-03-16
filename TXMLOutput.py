@@ -12,7 +12,7 @@ class TXMLOutput():
     """
     def __init__(self):
         self.indent = 0
-        self.entity_id = 0
+        self.entity_id = 1  # entity numbering must start from 1. Zero is invalid
         self.resetOutputXML()
 
 #############################################################################
