@@ -21,11 +21,13 @@ class MeshContainer():
     # Submesh holds all ogre mesh data related to OgreSubmesh class
     #
     class SubMesh():
-        def __init__(self):
+        def __init__(self, materialref="", operationtype="triangle_list"):
             self.vertexBuffer = MeshContainer.VertexBuffer()
             self.faces = []
             self.boneAssignments = MeshContainer.BoneAssignments()
             self.name = ""
+            self.materialref = materialref
+            self.operationtype = operationtype
         def __message(self, msg):
             #print msg
             return
@@ -276,8 +278,8 @@ class MeshContainer():
     # - newSkeletonLink
     # - newBoneAssignment
     #
-    def newSubmesh(self):
-        sm = MeshContainer.SubMesh()
+    def newSubmesh(self, materialref="", operationtype="triangle_list"):
+        sm = MeshContainer.SubMesh(materialref=materialref, operationtype=operationtype)
         self.submeshes.append(sm)
         self.currententity = sm
     def newSharedGeometry(self):

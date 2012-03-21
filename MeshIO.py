@@ -89,7 +89,8 @@ class OgreXMLImport():
         def __start_submeshes(self, attributes):
             pass
         def __start_submesh(self, attributes):
-            self.mc.newSubmesh()
+            self.mc.newSubmesh(materialref=attributes.getValueByQName("material"),
+                               operationtype=attributes.getValueByQName("operationtype"))
         def __start_sharedgeometry(self, attributes):
             self.mc.newSharedGeometry()
         def __start_faces(self, attributes):
@@ -235,7 +236,7 @@ class OgreXMLExport():
             for m in self.meshcontainer.submeshes:
                 longIndices = False
                 if len(m.vertexBuffer.vertices) > 32765: longIndices = True
-                self.startSubmesh("", False, longIndices, "triangle_list")
+                self.startSubmesh(m.materialref, False, longIndices, m.operationtype)
 
                 self.startFaces(len(m.faces)/3)
                 for i in [m.faces[x:x+3] for x in xrange(0, len(m.faces), 3)]:
@@ -330,7 +331,7 @@ class OgreXMLExport():
         self.__outputXML("</vertexbuffer>")
 
     def startSharedgeometry(self, vertices):
-        self.__outputXML("<sharedgeometry vertexcount=\"" + str(vertices) + "\">")
+        self.__outputXML("<sharedgeometry vertexcount=\"%d\">" % vertices)
         self.__increaseIndent()
 
     def endSharedgeometry(self):
@@ -353,10 +354,10 @@ class OgreXMLExport():
         self.__decreaseIndent()
         self.__outputXML("</submeshes>")
 
-    def startSubmesh(self, material, sharedvertices, longindices=False, operationtype="triangle_mesh"):
+    def startSubmesh(self, material, sharedvertices, longindices=False, operationtype="triangle_list"):
         s_out = "material=\"%s\" " % material
-        s_out += "usesharedvertices=\"%s\" " % sharedvertices
-        s_out += "use32bitindexes=\"%s\" " % longindices
+        s_out += "usesharedvertices=\"%s\" " % str(sharedvertices).lower()
+        s_out += "use32bitindexes=\"%s\" " % str(longindices).lower()
         s_out += "operationtype=\"%s\"" % operationtype
         self.__outputXML("<submesh %s>" % s_out)
         self.__increaseIndent()
