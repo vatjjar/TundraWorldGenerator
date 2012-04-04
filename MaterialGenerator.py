@@ -207,11 +207,11 @@ class Material():
             self.currenttextureunit = None
             self.currentvertexprogram = None
             self.currentfragmentprogram = None
-            self.lod1_params = [ "ambient", "diffuse", "cull_hardware", "depth_check" ]
-            self.lod2_params = [ "specular", "emissive", "polygon_mode" ]
-            self.lod3_params = [ "scene_blend", "depth_write" ]
-            self.lod4_params = [ "lighting", "alpha_rejection", "iteration" ]
-            self.lod5_params = [ "cull_software", "fog_override" ]
+            self.lod1_params = [ "ambient", "diffuse", "cull_hardware", "depth_check", "depth_func", "colour_write" ]
+            self.lod2_params = [ "specular", "emissive", "polygon_mode", "shading", "alpha_to_coverage" ]
+            self.lod3_params = [ "scene_blend", "depth_write", "transparent_sorting", "illumination_stage" ]
+            self.lod4_params = [ "lighting", "alpha_rejection", "iteration", "scene_blend_op", "normalise_normals" ]
+            self.lod5_params = [ "cull_software", "fog_override", "light_scissor", "light_clip_planes" ]
             self.all_params  = " ".join(self.lod1_params)
             self.all_params += (" " + " ".join(self.lod2_params))
             self.all_params += (" " + " ".join(self.lod3_params))
