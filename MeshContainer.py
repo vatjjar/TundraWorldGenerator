@@ -137,17 +137,34 @@ class MeshContainer():
     # Vertex buffer holds positions, normals and texcoords needed for rendering
     #
     class VertexBuffer():
-        def __init__(self):
+        def __init__(self, texcoordDimensions=2):
             self.vertices = []
             self.normals = []
             self.texcoords = []
             self.diffusecolors = []
+            self.texcoordDimensions = texcoordDimensions
+            self.resetMinMax()
+        def resetMinMax(self):
+            self.min_x = 100000
+            self.max_x = -100000
+            self.min_y = 100000
+            self.max_y = -100000
+            self.min_z = 100000
+            self.max_z = -100000
+            self.scaleF = 0.0
         def __message(self, msg):
             #print msg
             return
 
-        def addVertex(self, v_list):
+        def addVertex(self, v_list):    # Assume v_list is a three dimensional vertex definition
             for v in v_list: self.vertices.append(v)
+            if v_list[0] < self.min_x: self.min_x = v_list[0]   # Min, max values are updated as they are fed
+            if v_list[0] > self.max_x: self.max_x = v_list[0]   # into the array
+            if v_list[1] < self.min_y: self.min_y = v_list[1]
+            if v_list[1] > self.max_y: self.max_y = v_list[1]
+            if v_list[2] < self.min_z: self.min_z = v_list[2]
+            if v_list[2] > self.max_z: self.max_z = v_list[2]
+            self.scaleF = max(self.max_x-self.min_x, max(self.max_y-self.min_y, self.max_z-self.min_z))
         def addNormal(self, n_list):
             for n in n_list: self.normals.append(n)
         def addTexcoord(self, t_list):
@@ -211,6 +228,90 @@ class MeshContainer():
         def optimize(self, tolerance=0.01):
             self.__message("VertexBuffer: optimize")
             pass
+
+        ###
+        # Experimental. a method to build a 3D texture out from point cloud
+        # position and color data. Also
+        #
+        def calcVertexMinMax(self):
+            self.resetMinMax()
+            vVector = [self.vertices[x:x+3]      for x in xrange(0, len(self.vertices), 3)]
+            for i in range(len(vVector)):
+                if vVector[i][0] < min_x: min_x = vVector[i][0]
+                if vVector[i][0] > max_x: max_x = vVector[i][0]
+                if vVector[i][1] < min_y: min_y = vVector[i][1]
+                if vVector[i][1] > max_y: max_y = vVector[i][1]
+                if vVector[i][2] < min_z: min_z = vVector[i][2]
+                if vVector[i][2] > max_z: max_z = vVector[i][2]
+            self.scaleF = max(self.max_x-self.min_x, max(self.max_y-self.min_y, self.max_z-self.min_z))
+            print self.min_x, self.max_x, self.min_y, self.max_y, self.min_z, self.max_z
+            print self.max_x-self.min_x, self.max_y-self.min_y, self.max_z-self.min_z
+            print self.scaleF
+
+        def create3DTexcoords(self):
+            vVector = [self.vertices[x:x+3] for x in xrange(0, len(self.vertices), 3)]
+            self.texcoords = []
+            self.texcoordDimensions = 3
+            for i in range(len(vVector)):
+                self.texcoords.append((vVector[i][0] - self.min_x)/self.scaleF)     # vertex scaled into 0..1 cubic volume
+                self.texcoords.append((vVector[i][1] - self.min_y)/self.scaleF)     # shall act as 3D tex coord
+                self.texcoords.append((vVector[i][2] - self.min_z)/self.scaleF)
+
+        def build3DTexture(self, size=32, filename="tex3d.bin"):
+            import numpy
+            #self.calcVertexMinMax()
+            print self.min_x, self.max_x, self.min_y, self.max_y, self.min_z, self.max_z
+            print self.max_x-self.min_x, self.max_y-self.min_y, self.max_z-self.min_z
+            print self.scaleF
+            self.scaleF *= 1.001
+            self.create3DTexcoords()
+            cubicR = numpy.zeros((size, size, size), dtype=numpy.float32)
+            cubicG = numpy.zeros((size, size, size), dtype=numpy.float32)
+            cubicB = numpy.zeros((size, size, size), dtype=numpy.float32)
+            cubicN = numpy.zeros((size, size, size), dtype=numpy.int32)
+            vVector = [self.vertices[x:x+3]      for x in xrange(0, len(self.vertices), 3)]
+            cVector = [self.diffusecolors[x:x+3] for x in xrange(0, len(self.diffusecolors), 3)]
+            for i in range(len(vVector)):
+                x = int(size*(vVector[i][0] - self.min_x)/self.scaleF)     # x, y, z will range in [0..size]
+                y = int(size*(vVector[i][1] - self.min_y)/self.scaleF)
+                z = int(size*(vVector[i][2] - self.min_z)/self.scaleF)
+                #print x, y, z
+                cubicR[x][y][z] += cVector[i][0]
+                cubicG[x][y][z] += cVector[i][1]
+                cubicB[x][y][z] += cVector[i][2]
+                cubicN[x][y][z] += 1
+            count = 0
+            for x in range(size):               # Cumulating colors are averaged
+                for y in range(size):
+                    for z in range(size):
+                        #print cubicN[x][y][z]
+                        if cubicN[x][y][z] == 0: continue   # Division by zero exception does not pass with numpy
+                        else: count += 1
+                        #try: cubicR[x][y][z] /= cubicN[x][y][z]
+                        #except ZeroDivisionError: pass
+                        cubicR[x][y][z] /= cubicN[x][y][z]
+                        cubicG[x][y][z] /= cubicN[x][y][z]
+                        cubicB[x][y][z] /= cubicN[x][y][z]
+                        #print cubicR[x][y][z], cubicG[x][y][z], cubicB[x][y][z]
+            #print count
+            # And now flush the binary to a file
+            import array
+            f = open(filename, "wb")
+            buf = array.array("I")
+            buf.fromlist([size, size, size])
+            buf.tofile(f)                   # Write header. tex dimensions x, y, z
+            buf = array.array("f")
+            d_buf = []
+            for z in range(size):
+                for y in range(size):
+                    for x in range(size):
+                        d_buf.append(cubicR[x][y][z])
+                        d_buf.append(cubicG[x][y][z])
+                        d_buf.append(cubicB[x][y][z])
+                        d_buf.append(1.0)
+            buf.fromlist(d_buf)
+            buf.tofile(f)
+            f.close()
 
     ####
     # Bone assignments are links between skeleton and mesh structure
@@ -358,7 +459,7 @@ class MeshContainer():
         self.__message(" Shared vertices: %s" % (not self.sharedgeometry == None))
         if self.sharedgeometry != None:
             self.__message("  Vertices=%d, texcoords=%d, normal=%d" % (len(self.sharedgeometry.vertices)/3,
-                                                              len(self.sharedgeometry.texcoords)/2,
+                                                              len(self.sharedgeometry.texcoords)/self.sharedgeometry.texcoordDimensions,
                                                               len(self.sharedgeometry.normals)/3))
         self.__message(" Submeshes %d" % (len(self.submeshes)))
         for m in self.submeshes:
@@ -366,7 +467,7 @@ class MeshContainer():
             self.__message("  Vertices=%d, faces=%d, normal=%d texcoords=%d, diffuse_colors=%d" % (len(m.vertexBuffer.vertices)/3,
                                                                        len(m.faces)/3,
                                                                        len(m.vertexBuffer.normals)/3,
-                                                                       len(m.vertexBuffer.texcoords)/2,
+                                                                       len(m.vertexBuffer.texcoords)/m.vertexBuffer.texcoordDimensions,
                                                                        len(m.vertexBuffer.diffusecolors)/3))
 
 ###############################################################################

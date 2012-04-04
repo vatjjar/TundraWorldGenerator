@@ -39,7 +39,7 @@ class MeshIO():
         else:
             print "Unknown mimetype %s. Import Aborted!" % item.mimetype
 
-    def toFile(self, localfile, overwrite=False):
+    def toFile(self, localfile, overwrite=False, positions=True, normals=True, texcoords=True, diffusecolors=True):
         if os.path.exists(localfile):
             if overwrite == False:
                 print "Output file %s already exists, abort" % localfile
@@ -50,9 +50,16 @@ class MeshIO():
                 return
         if localfile.endswith(".xml"):
             ml = OgreXMLExport(self.meshcontainer, localfile, overwrite)
-            ml.toFile(localfile)
+            ml.toFile(localfile, positions, normals, texcoords, diffusecolors)
         else:
             print "Uknown file ending. Abort!"
+
+    def build3DTextures(self, prefix="3dtex%d.bin", overwrite=False):
+        count = 0
+        for m in self.meshcontainer.submeshes:
+            filename = prefix % count
+            count += 1
+            m.vertexBuffer.build3DTexture(size=32, filename=filename)
 
 #############################################################################
 # OgreXMLImport class
@@ -226,7 +233,7 @@ class OgreXMLExport():
         self.meshcontainer = meshcontainer
         self.openOutputXML(localfile, overwrite)
 
-    def toFile(self, localfile, overwrite=False):
+    def toFile(self, localfile, positions=True, normals=True, texcoords=True, diffusecolors=True):
         self.startMesh()
         if self.meshcontainer.sharedgeometry != None:
             print "Fixme, sharedvertice export TBD"
@@ -243,22 +250,31 @@ class OgreXMLExport():
                     self.outputFace(i[0], i[1], i[2])
                 self.endFaces()
 
+                tdim = m.vertexBuffer.texcoordDimensions
                 self.startGeometry(len(m.vertexBuffer.vertices)/3)
                 vVector = [m.vertexBuffer.vertices[x:x+3]           for x in xrange(0, len(m.vertexBuffer.vertices), 3)]
                 nVector = [m.vertexBuffer.normals[x:x+3]            for x in xrange(0, len(m.vertexBuffer.normals), 3)]
-                tVector = [m.vertexBuffer.texcoords[x:x+2]          for x in xrange(0, len(m.vertexBuffer.texcoords), 2)]
+                tVector = [m.vertexBuffer.texcoords[x:x+tdim]       for x in xrange(0, len(m.vertexBuffer.texcoords), tdim)]
                 cVector = [m.vertexBuffer.diffusecolors[x:x+3]      for x in xrange(0, len(m.vertexBuffer.diffusecolors), 3)]
-                self.startVertexbuffer((len(vVector) != 0), (len(nVector) != 0), (len(tVector) != 0), (len(cVector) != 0))
+                self.startVertexbuffer(((len(vVector) != 0)&positions),
+                                       ((len(nVector) != 0)&normals),
+                                       ((len(tVector) != 0)&texcoords),
+                                       ((len(cVector) != 0)&diffusecolors),
+                                       tex_dimensions = tdim)
+                print tdim, texcoords, len(tVector)
 
                 counter = 0
                 while counter < len(m.vertexBuffer.vertices)/3:
                     self.startVertex()
                     self.outputPosition(vVector[counter][0], vVector[counter][1], vVector[counter][2])
-                    if len(nVector) > 0:
+                    if len(nVector) > 0 and normals:
                         self.outputNormal(nVector[counter][0], nVector[counter][1], nVector[counter][2])
-                    if len(tVector) > 0:
-                        self.outputTexcoord(tVector[counter][0], tVector[counter][1])
-                    if len(cVector) > 0:
+                    if len(tVector) > 0 and texcoords:
+                        if tdim == 2:
+                            self.outputTexcoord(tVector[counter][0], tVector[counter][1])
+                        elif tdim == 3:
+                            self.outputTexcoord3D(tVector[counter][0], tVector[counter][1], tVector[counter][2])
+                    if len(cVector) > 0 and diffusecolors:
                         self.outputDiffuseColor(cVector[counter][0], cVector[counter][1], cVector[counter][2])
                     self.endVertex()
                     counter += 1
@@ -391,6 +407,9 @@ class OgreXMLExport():
     def outputTexcoord(self, u, v):
         self.__outputXML("<texcoord u=\"%1.6f\" v=\"%1.6f\"/>" % (u, v))
 
+    def outputTexcoord3D(self, u, v, w):
+        self.__outputXML("<texcoord u=\"%1.6f\" v=\"%1.6f\" w=\"%1.6f\"/>" % (u, v, w))
+
     def outputFace(self, v1, v2, v3):
         self.__outputXML("<face v1=\"%d\" v2=\"%d\" v3=\"%d\"/>" % (v1, v2, v3))
 
@@ -518,7 +537,8 @@ if __name__ == "__main__":
         mesh.printStatistics()
         if output != None:
             print "Trying output write to %s" % output
-            meshio.toFile(output, overwrite=True)
+            meshio.build3DTextures(prefix="3dtex%03d.bin", overwrite=True)
+            meshio.toFile(output, overwrite=True, diffusecolors=False)
     except IOError:
         print "Error parsing the input file!"
     except OSError:
