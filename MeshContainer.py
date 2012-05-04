@@ -22,12 +22,12 @@ class MeshContainer():
     #
     class SubMesh():
         def __init__(self, materialref="", operationtype="triangle_list"):
-            self.vertexBuffer = MeshContainer.VertexBuffer()
-            self.faces = []
-            self.boneAssignments = MeshContainer.BoneAssignments()
-            self.name = ""
-            self.materialref = materialref
-            self.operationtype = operationtype
+            self.vertexBuffer       = MeshContainer.VertexBuffer()
+            self.faces              = []
+            self.boneAssignments    = MeshContainer.BoneAssignments()
+            self.name               = ""
+            self.materialref        = materialref
+            self.operationtype      = operationtype
         def __message(self, msg):
             #print msg
             return
@@ -137,38 +137,66 @@ class MeshContainer():
     # Vertex buffer holds positions, normals and texcoords needed for rendering
     #
     class VertexBuffer():
-        def __init__(self, texcoordDimensions=2):
-            self.vertices = []
-            self.normals = []
-            self.texcoords = []
-            self.diffusecolors = []
-            self.texcoordDimensions = texcoordDimensions
+        def __init__(self):
+            self.vertices           = []
+            self.normals            = []
+            self.texcoords          = []    # There is actually up to eight of texcoords
+            self.texcoords_1        = []    # Only two supported for testing
+            self.diffusecolors      = []
+            self.texcoordDimensions = [2, 2]
             self.resetMinMax()
         def resetMinMax(self):
-            self.min_x = 100000
-            self.max_x = -100000
-            self.min_y = 100000
-            self.max_y = -100000
-            self.min_z = 100000
-            self.max_z = -100000
+            self.min_x = 100000.0
+            self.max_x = -100000.0
+            self.min_y = 100000.0
+            self.max_y = -100000.0
+            self.min_z = 100000.0
+            self.max_z = -100000.0
+            self.min_x_index = -1
+            self.max_x_index = -1
+            self.min_y_index = -1
+            self.max_y_index = -1
+            self.min_z_index = -1
+            self.max_z_index = -1
             self.scaleF = 0.0
         def __message(self, msg):
             #print msg
             return
+        def debugMinMax(self):
+            print "---"
+            print "Mesh min-max values:"
+            print self.min_x, self.max_x, self.min_y, self.max_y, self.min_z, self.max_z
+            print "Mesh min-max differences:"
+            print self.max_x-self.min_x, self.max_y-self.min_y, self.max_z-self.min_z
+            print "Scale factor:"
+            print self.scaleF
+            print "Mesh min-max indices:"
+            print self.min_x_index, self.max_x_index, self.min_y_index, self.max_y_index, self.min_z_index, self.max_z_index
+            print "---"
+        def setTexcoordDimensions(self, t_array, t_dim):
+            try:   self.texcoordDimensions[t_array] = t_dim
+            except IndexError: pass
 
         def addVertex(self, v_list):    # Assume v_list is a three dimensional vertex definition
             for v in v_list: self.vertices.append(v)
-            if v_list[0] < self.min_x: self.min_x = v_list[0]   # Min, max values are updated as they are fed
-            if v_list[0] > self.max_x: self.max_x = v_list[0]   # into the array
-            if v_list[1] < self.min_y: self.min_y = v_list[1]
-            if v_list[1] > self.max_y: self.max_y = v_list[1]
-            if v_list[2] < self.min_z: self.min_z = v_list[2]
-            if v_list[2] > self.max_z: self.max_z = v_list[2]
+            # Min, max values are updated as they are fed
+            # into the array
+            if v_list[0] < self.min_x: self.min_x = v_list[0]; self.min_x_index = len(self.vertices)/3-1
+            if v_list[0] > self.max_x: self.max_x = v_list[0]; self.max_x_index = len(self.vertices)/3-1
+            if v_list[1] < self.min_y: self.min_y = v_list[1]; self.min_y_index = len(self.vertices)/3-1
+            if v_list[1] > self.max_y: self.max_y = v_list[1]; self.max_y_index = len(self.vertices)/3-1
+            if v_list[2] < self.min_z: self.min_z = v_list[2]; self.min_z_index = len(self.vertices)/3-1
+            if v_list[2] > self.max_z: self.max_z = v_list[2]; self.max_z_index = len(self.vertices)/3-1
             self.scaleF = max(self.max_x-self.min_x, max(self.max_y-self.min_y, self.max_z-self.min_z))
         def addNormal(self, n_list):
             for n in n_list: self.normals.append(n)
-        def addTexcoord(self, t_list):
-            for t in t_list: self.texcoords.append(t)
+        def addTexcoord(self, t_list, bank):
+            if len(t_list) != self.texcoordDimensions[bank]:
+                self.__message("Warning: texcoord dimensions do not match expectation. Expected %d, got %d" % (len(t_list), self.texcoordDimensions[bank]))
+            if bank == 0:
+                for t in t_list: self.texcoords.append(t)
+            if bank == 1:
+                for t in t_list: self.texcoords_1.append(t)
         def addDiffuseColor(self, c_list):
             for c in c_list.split(" "): self.diffusecolors.append(float(c))
         #
@@ -244,14 +272,11 @@ class MeshContainer():
                 if vVector[i][2] < min_z: min_z = vVector[i][2]
                 if vVector[i][2] > max_z: max_z = vVector[i][2]
             self.scaleF = max(self.max_x-self.min_x, max(self.max_y-self.min_y, self.max_z-self.min_z))
-            print self.min_x, self.max_x, self.min_y, self.max_y, self.min_z, self.max_z
-            print self.max_x-self.min_x, self.max_y-self.min_y, self.max_z-self.min_z
-            print self.scaleF
 
         def create3DTexcoords(self):
             vVector = [self.vertices[x:x+3] for x in xrange(0, len(self.vertices), 3)]
             self.texcoords = []
-            self.texcoordDimensions = 3
+            self.setTexcoordDimensions(0, 3)
             for i in range(len(vVector)):
                 self.texcoords.append((vVector[i][0] - self.min_x)/self.scaleF)     # vertex scaled into 0..1 cubic volume
                 self.texcoords.append((vVector[i][1] - self.min_y)/self.scaleF)     # shall act as 3D tex coord
@@ -260,9 +285,6 @@ class MeshContainer():
         def build3DTexture(self, size=32, filename="tex3d.bin"):
             import numpy
             #self.calcVertexMinMax()
-            print self.min_x, self.max_x, self.min_y, self.max_y, self.min_z, self.max_z
-            print self.max_x-self.min_x, self.max_y-self.min_y, self.max_z-self.min_z
-            print self.scaleF
             self.scaleF *= 1.001
             self.create3DTexcoords()
             cubicR = numpy.zeros((size, size, size), dtype=numpy.float32)
@@ -333,7 +355,7 @@ class MeshContainer():
         self.initialize()
 
     def __message(self, msg):
-        #print msg
+        print msg
         return
 
     def initialize(self):
@@ -341,23 +363,23 @@ class MeshContainer():
         self.sharedgeometry = None
         self.submeshnames = []
         self.skeletonlinks = None
-        # State variables, either shared vertex buffer or submesh
-        self.currententity = None
+        # State variables, either shared vertex buffer or a submesh
+        self.currentEntity = None
 
     #####
     # MeshContainer: Data attribute methods
     #
     def addVertex(self, v_list):
-        try: self.currententity.addVertex(v_list)
+        try: self.currentEntity.addVertex(v_list)
         except AttributeError: pass
     def addNormal(self, n_list):
-        try: self.currententity.addNormal(n_list)
+        try: self.currentEntity.addNormal(n_list)
         except AttributeError: pass
-    def addTexcoord(self, t_list):
-        try: self.currententity.addTexcoord(t_list)
+    def addTexcoord(self, t_list, bank):
+        try: self.currentEntity.addTexcoord(t_list, bank)
         except AttributeError: pass
     def addDiffuseColor(self, c_list):
-        try: self.currententity.addDiffuseColor(c_list)
+        try: self.currentEntity.addDiffuseColor(c_list)
         except AttributeError: pass
     def addFace(self, f_list):
         try: self.submeshes[-1].addFace(f_list)
@@ -370,6 +392,9 @@ class MeshContainer():
     def addSubmeshName(self, name, index):
         try: self.submeshes[int(index)].addName(name)
         except IndexError: pass
+    def setTexcoordDimensions(self, t_index, t_dim):
+        try: self.currentEntity.setTexcoordDimensions(t_index, t_dim)
+        except AttributeError: pass
 
     #####
     # MeshContainer: Data container methods
@@ -382,10 +407,10 @@ class MeshContainer():
     def newSubmesh(self, materialref="", operationtype="triangle_list"):
         sm = MeshContainer.SubMesh(materialref=materialref, operationtype=operationtype)
         self.submeshes.append(sm)
-        self.currententity = sm
+        self.currentEntity = sm
     def newSharedGeometry(self):
         self.sharedgeometry = MeshContainer.VertexBuffer()
-        self.currententity = self.sharedgeometry
+        self.currentEntity = self.sharedgeometry
     def newSubmeshName(self, name):
         self.submeshname.append(name)
     def newSkeletonLink(self):
@@ -458,17 +483,33 @@ class MeshContainer():
         self.__message("MeshContainer:")
         self.__message(" Shared vertices: %s" % (not self.sharedgeometry == None))
         if self.sharedgeometry != None:
-            self.__message("  Vertices=%d, texcoords=%d, normal=%d" % (len(self.sharedgeometry.vertices)/3,
-                                                              len(self.sharedgeometry.texcoords)/self.sharedgeometry.texcoordDimensions,
-                                                              len(self.sharedgeometry.normals)/3))
+            if (len(self.sharedgeometry.vertices) != 0):
+                self.__message("  Vertices=%d" % (len(self.sharedgeometry.vertices)/3))
+            if (len(self.sharedgeometry.normals) != 0):
+                self.__message("  Normals=%d" % (len(self.sharedgeometry.normals)/3))
+            if (len(self.sharedgeometry.texcoords) != 0):
+                self.__message("   Texcoords 0 bank=%d, dimensions=%d" % (len(self.sharedgeometry.texcoords)/self.sharedgeometry.texcoordDimensions[0], self.sharedgeometry.texcoordDimensions[0]))
+            if (len(self.sharedgeometry.texcoords_1) != 0):
+                self.__message("   Texcoords 1 bank=%d, dimensions=%d" % (len(self.sharedgeometry.texcoords_1)/self.sharedgeometry.texcoordDimensions[1], self.sharedgeometry.texcoordDimensions[1]))
+
+        index = 0
         self.__message(" Submeshes %d" % (len(self.submeshes)))
         for m in self.submeshes:
-            self.__message("  Name = %s" % (m.name))
-            self.__message("  Vertices=%d, faces=%d, normal=%d texcoords=%d, diffuse_colors=%d" % (len(m.vertexBuffer.vertices)/3,
-                                                                       len(m.faces)/3,
-                                                                       len(m.vertexBuffer.normals)/3,
-                                                                       len(m.vertexBuffer.texcoords)/m.vertexBuffer.texcoordDimensions,
-                                                                       len(m.vertexBuffer.diffusecolors)/3))
+            self.__message("  Index %d" % index)
+            self.__message("   Name = %s" % m.name)
+            self.__message("   Material ref = %s" % m.materialref)
+            if (len(m.vertexBuffer.vertices) != 0):
+                self.__message("   Vertices=%d" % (len(m.vertexBuffer.vertices)/3))
+            if (len(m.faces) != 0):
+                self.__message("   Faces=%d" % (len(m.faces)/3))
+            if (len(m.vertexBuffer.normals) != 0):
+                self.__message("   Normals=%d" % (len(m.vertexBuffer.normals)/3))
+            if (len(m.vertexBuffer.diffusecolors) != 0):
+                self.__message("   Diffuse colors=%d" % (len(m.vertexBuffer.diffusecolors)/3))
+            if (len(m.vertexBuffer.texcoords) != 0):
+                self.__message("   Texcoords 0 bank=%d, dimensions=%d" % (len(m.vertexBuffer.texcoords)/m.vertexBuffer.texcoordDimensions[0], m.vertexBuffer.texcoordDimensions[0]))
+            if (len(m.vertexBuffer.texcoords_1) != 0):
+                self.__message("   Texcoords 1 bank=%d, dimensions=%d" % (len(m.vertexBuffer.texcoords_1)/m.vertexBuffer.texcoordDimensions[1], m.vertexBuffer.texcoordDimensions[1]))
 
 ###############################################################################
 # Unit test case

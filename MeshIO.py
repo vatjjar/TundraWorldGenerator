@@ -87,6 +87,7 @@ class OgreXMLImport():
     class XMLParser(xml.sax.ContentHandler):
         def setMeshContainer(self, container):
             self.mc = container
+            self.texcoordBank = 0
 
         ###
         # Start element methods:
@@ -96,8 +97,13 @@ class OgreXMLImport():
         def __start_submeshes(self, attributes):
             pass
         def __start_submesh(self, attributes):
-            self.mc.newSubmesh(materialref=attributes.getValueByQName("material"),
-                               operationtype=attributes.getValueByQName("operationtype"))
+            materialref = ""
+            operationtype = "triangle_list"
+            try: materialref = attributes.getValueByQName("material")
+            except KeyError: materialref = ""
+            try: operationtype = attributes.getValueByQName("operationtype")
+            except KeyError: operationtype = "triangle_list"
+            self.mc.newSubmesh(materialref, operationtype)
         def __start_sharedgeometry(self, attributes):
             self.mc.newSharedGeometry()
         def __start_faces(self, attributes):
@@ -108,8 +114,20 @@ class OgreXMLImport():
                              int(attributes.getValueByQName("v3"))])
         def __start_geometry(self, attributes):
             pass
+        def __start_vertex(self, attributes):
+            self.texcoordBank = 0
         def __start_vertexbuffer(self, attributes):
-            pass
+            for i in range(8):
+                try:
+                    value = attributes.getValueByQName("texture_coord_dimensions_%d" % i)
+                except KeyError:
+                    break
+                if value == "float2":
+                    self.mc.setTexcoordDimensions(i, 2)
+                if value == "float3":
+                    self.mc.setTexcoordDimensions(i, 3)
+                if value == "float4":
+                    self.mc.setTexcoordDimensions(i, 4)
         def __start_position(self, attributes):
             self.mc.addVertex([float(attributes.getValueByQName("x")),
                                float(attributes.getValueByQName("y")),
@@ -119,8 +137,15 @@ class OgreXMLImport():
                                float(attributes.getValueByQName("y")),
                                float(attributes.getValueByQName("z"))])
         def __start_texcoord(self, attributes):
-            self.mc.addTexcoord([float(attributes.getValueByQName("u")),
-                                 float(attributes.getValueByQName("v"))])
+            names = ["u", "v", "w", "x"]
+            coords = []
+            for a in names:
+                try:
+                    coords.append(float(attributes.getValueByQName(a)))
+                except KeyError:
+                    break
+            self.mc.addTexcoord(coords, self.texcoordBank)
+            self.texcoordBank += 1
         def __start_diffusecolor(self, attributes):
             self.mc.addDiffuseColor(attributes.getValueByQName("value"))
         def __start_boneassignments(self, attributes):
@@ -181,6 +206,7 @@ class OgreXMLImport():
             if tag == "faces":                return self.__start_faces(attributes)
             if tag == "face":                 return self.__start_face(attributes)
             if tag == "geometry":             return self.__start_geometry(attributes)
+            if tag == "vertex":               return self.__start_vertex(attributes)
             if tag == "vertexbuffer":         return self.__start_vertexbuffer(attributes)
             if tag == "position":             return self.__start_position(attributes)
             if tag == "normal":               return self.__start_normal(attributes)
@@ -233,58 +259,69 @@ class OgreXMLExport():
         self.meshcontainer = meshcontainer
         self.openOutputXML(localfile, overwrite)
 
-    def toFile(self, localfile, positions=True, normals=True, texcoords=True, diffusecolors=True):
+    def toFile(self, localfile, positions=True, normals=True, texcoords0=True, texcoords1=True, diffusecolors=True):
         self.startMesh()
         if self.meshcontainer.sharedgeometry != None:
-            print "Fixme, sharedvertice export TBD"
-            pass                            # Todo: add sharedgeometry suppot
+            self.startSharedgeometry(len(self.meshcontainer.sharedgeometry.vertices)/3)
+            self.__outputVertexbuffer(self.meshcontainer.sharedgeometry, positions, normals, texcoords0, texcoords1, diffusecolors)
+            self.endSharedgeometry()
+
         if len(self.meshcontainer.submeshes) > 0:
             self.startSubmeshes()
             for m in self.meshcontainer.submeshes:
                 longIndices = False
                 if len(m.vertexBuffer.vertices) > 32765: longIndices = True
-                self.startSubmesh(m.materialref, False, longIndices, m.operationtype)
+                self.startSubmesh(m.materialref, (self.meshcontainer.sharedgeometry!=None), longIndices, m.operationtype)
 
                 self.startFaces(len(m.faces)/3)
                 for i in [m.faces[x:x+3] for x in xrange(0, len(m.faces), 3)]:
                     self.outputFace(i[0], i[1], i[2])
                 self.endFaces()
 
-                tdim = m.vertexBuffer.texcoordDimensions
-                self.startGeometry(len(m.vertexBuffer.vertices)/3)
-                vVector = [m.vertexBuffer.vertices[x:x+3]           for x in xrange(0, len(m.vertexBuffer.vertices), 3)]
-                nVector = [m.vertexBuffer.normals[x:x+3]            for x in xrange(0, len(m.vertexBuffer.normals), 3)]
-                tVector = [m.vertexBuffer.texcoords[x:x+tdim]       for x in xrange(0, len(m.vertexBuffer.texcoords), tdim)]
-                cVector = [m.vertexBuffer.diffusecolors[x:x+3]      for x in xrange(0, len(m.vertexBuffer.diffusecolors), 3)]
-                self.startVertexbuffer(((len(vVector) != 0)&positions),
-                                       ((len(nVector) != 0)&normals),
-                                       ((len(tVector) != 0)&texcoords),
-                                       ((len(cVector) != 0)&diffusecolors),
-                                       tex_dimensions = tdim)
-                print tdim, texcoords, len(tVector)
+                if (len(m.vertexBuffer.vertices) > 0):
+                    self.startGeometry(len(m.vertexBuffer.vertices)/3)
+                    self.__outputVertexbuffer(m.vertexBuffer, positions, normals, texcoords0, texcoords1, diffusecolors)
+                    self.endGeometry()
 
-                counter = 0
-                while counter < len(m.vertexBuffer.vertices)/3:
-                    self.startVertex()
-                    self.outputPosition(vVector[counter][0], vVector[counter][1], vVector[counter][2])
-                    if len(nVector) > 0 and normals:
-                        self.outputNormal(nVector[counter][0], nVector[counter][1], nVector[counter][2])
-                    if len(tVector) > 0 and texcoords:
-                        if tdim == 2:
-                            self.outputTexcoord(tVector[counter][0], tVector[counter][1])
-                        elif tdim == 3:
-                            self.outputTexcoord3D(tVector[counter][0], tVector[counter][1], tVector[counter][2])
-                    if len(cVector) > 0 and diffusecolors:
-                        self.outputDiffuseColor(cVector[counter][0], cVector[counter][1], cVector[counter][2])
-                    self.endVertex()
-                    counter += 1
-
-                self.endVertexbuffer()
-                self.endGeometry()
                 self.endSubmesh()
             self.endSubmeshes()
         self.endMesh()
         self.closeOutputXML()
+
+    def __outputVertexbuffer(self, vb, positions=True, normals=True, texcoords0=True, texcoords1=False, diffusecolors=True):
+        vb.debugMinMax()
+        tdim0 = vb.texcoordDimensions[0]
+        tdim1 = vb.texcoordDimensions[1]
+        vVector  = [vb.vertices[x:x+3]           for x in xrange(0, len(vb.vertices), 3)]
+        nVector  = [vb.normals[x:x+3]            for x in xrange(0, len(vb.normals), 3)]
+        tVector0 = [vb.texcoords[x:x+tdim0]      for x in xrange(0, len(vb.texcoords), tdim0)]
+        tVector1 = [vb.texcoords_1[x:x+tdim1]    for x in xrange(0, len(vb.texcoords_1), tdim1)]
+        cVector  = [vb.diffusecolors[x:x+3]      for x in xrange(0, len(vb.diffusecolors), 3)]
+        self.startVertexbuffer(((len(vVector) != 0)&positions),
+                               ((len(nVector) != 0)&normals),
+                               ((len(tVector0) != 0)&texcoords0),
+                               ((len(tVector1) != 0)&texcoords1),
+                               ((len(cVector) != 0)&diffusecolors),
+                               tex0_dimensions = tdim0,
+                               tex1_dimensions = tdim1)
+        print "Tex bank 0: ", tdim0, texcoords0, len(tVector0)
+        print "Tex bank 1: ", tdim1, texcoords1, len(tVector1)
+
+        counter = 0
+        while counter < len(vb.vertices)/3:
+            self.startVertex()
+            self.outputPosition(vVector[counter][0], vVector[counter][1], vVector[counter][2])
+            if len(nVector) > 0 and normals:
+                self.outputNormal(nVector[counter][0], nVector[counter][1], nVector[counter][2])
+            if len(tVector0) > 0 and texcoords0:
+                self.outputTexcoord(tVector0[counter])
+            if len(tVector1) > 0 and texcoords1:
+                self.outputTexcoord(tVector1[counter])
+            if len(cVector) > 0 and diffusecolors:
+                self.outputDiffuseColor(cVector[counter][0], cVector[counter][1], cVector[counter][2])
+            self.endVertex()
+            counter += 1
+        self.endVertexbuffer()
 
     #############################################################################
     # OgreXMLExport: File I/O and internals
@@ -314,10 +351,10 @@ class OgreXMLExport():
         self.outputXMLFile.write((indent_str + str(msg) + "\n"))
 
     def __increaseIndent(self):
-        self.indent += 1
+        self.indent += 4
 
     def __decreaseIndent(self):
-        if self.indent > 0: self.indent -= 1
+        if self.indent > 0: self.indent -= 4
 
     #############################################################################
     # OgreXMLExport: Ogre XML output methods
@@ -330,13 +367,19 @@ class OgreXMLExport():
         self.__decreaseIndent()
         self.__outputXML("</mesh>")
 
-    def startVertexbuffer(self, position=True, normal=True, texcoord=True, diffusecolor=False, tex_dimensions=2):
+    def startVertexbuffer(self, position=True, normal=True, texcoord0=True, texcoord1=False, diffusecolor=False, tex0_dimensions=2, tex1_dimensions=2):
         s_out = ""
+        t_count = 0
         if normal == True:   s_out += "normals=\"true\" "
         if position == True: s_out += "positions=\"true\" "
-        if texcoord == True:
-            s_out += "texture_coords=\"1\" "
-            s_out += "texcoord_dimensions=\"%d\" " % tex_dimensions
+        if texcoord0 == True:
+            s_out += "texture_coord_dimensions_0=\"float%d\" " % tex0_dimensions
+            t_count += 1
+        if texcoord1 == True:
+            s_out += "texture_coord_dimensions_1=\"float%d\" " % tex1_dimensions
+            t_count += 1
+        if t_count > 0:
+            s_out += ("texture_coords=\"%d\" " % t_count)
         if diffusecolor == True:
             s_out += "colours_diffuse=\"true\" "
         self.__outputXML("<vertexbuffer %s>" % s_out)
@@ -404,11 +447,13 @@ class OgreXMLExport():
     def outputNormal(self, x, y, z):
         self.__outputXML("<normal x=\"%1.6f\" y=\"%1.6f\" z=\"%1.6f\"/>" % (x, y, z))
 
-    def outputTexcoord(self, u, v):
-        self.__outputXML("<texcoord u=\"%1.6f\" v=\"%1.6f\"/>" % (u, v))
-
-    def outputTexcoord3D(self, u, v, w):
-        self.__outputXML("<texcoord u=\"%1.6f\" v=\"%1.6f\" w=\"%1.6f\"/>" % (u, v, w))
+    def outputTexcoord(self, l_items):
+        names = ["u", "v", "w", "x"]
+        s_out = "<texcoord "
+        for v in range(len(l_items)):
+            s_out += ("%s=\"%f\" "%(names[v],l_items[v]))
+        s_out += "/>"
+        self.__outputXML(s_out)
 
     def outputFace(self, v1, v2, v3):
         self.__outputXML("<face v1=\"%d\" v2=\"%d\" v3=\"%d\"/>" % (v1, v2, v3))
@@ -538,7 +583,7 @@ if __name__ == "__main__":
         if output != None:
             print "Trying output write to %s" % output
             meshio.build3DTextures(prefix="3dtex%03d.bin", overwrite=True)
-            meshio.toFile(output, overwrite=True, diffusecolors=False)
+            meshio.toFile(output, overwrite=True)
     except IOError:
         print "Error parsing the input file!"
     except OSError:
