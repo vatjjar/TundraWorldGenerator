@@ -107,6 +107,9 @@ class TerrainGenerator():
     def __fromASCFile(self, filename):
         """ TerrainGenerator.__fromASCFile(filename)
               Return value: True if file input succeeded, otherwise False
+              ASC fileformat is delivered by Maanmittauslaitos in Finland. Their height
+              data is directly convertable into Tundra NTF format. This import code
+              is a bridge for that.
         """
         try: f = open(filename, "r")
         except IOError: self.printerror("Requested file %s does not exist." % filename); return False
@@ -134,17 +137,28 @@ class TerrainGenerator():
         while 1:
             line = f.readline()
             if len(line) == 0: break
-            t = line.split(" ")
+            t = line.split(" ")                     # t contains a row of terrain patch values
             #print len(t)
             for c in range(len(t)-1):               # Last mark is linefeed, that is why -1
                 value = float(t[c])
-                if value == novalue: value = 0.0    # Zero for non-defined values
+                if value == novalue: print "novalue"; value = 0.0    # Using zero for non-defined values
                 self.d_array[currentRow][currentCol] = value
                 currentRow += 1
                 if currentRow == cols:
+                    # fill the row-ends of the terrain, if its size is not power of 2
+                    for i in range((cols/self.cPatchSize+1)*self.cPatchSize - currentRow):
+                        #print "filling row: ", currentRow, currentCol, "with ", value
+                        self.d_array[currentRow][currentCol] = value
+                        currentRow += 1
                     currentRow = 0
                     currentCol += 1
                     if currentCol == rows:
+                        # fill the column-ends of the terrain, if its size is not power of 2
+                        for col in range(currentCol, (cols/self.cPatchSize+1)*self.cPatchSize):
+                            for row in range((rows/self.cPatchSize+1)*self.cPatchSize):
+                                #print "filling col:", row, col, "from", row, cols-1, "with value ", self.d_array[row][cols-1]
+                                self.d_array[row][col] = self.d_array[row][cols-1]
+                            #currentCol += 1
                         break                       # End of table reached
         return True
 
