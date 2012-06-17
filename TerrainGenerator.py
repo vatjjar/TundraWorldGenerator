@@ -75,6 +75,8 @@ class TerrainGenerator():
             return self.__fromNTFFile(filename)
         if filename.endswith(".asc"):
             return self.__fromASCFile(filename)
+        if filename.endswith(".xyz"):
+            return self.__fromXYZFile(filename)
         return False
 
     def __fromNTFFile(self, filename):
@@ -102,6 +104,40 @@ class TerrainGenerator():
         f.close()
         self.minvalid = False
         self.maxvalid = False
+        return True
+        
+    def __fromXYZFile(self, filename):
+        with open(filename) as f:
+            for i, l in enumerate(f):
+                pass
+        width = int(sqrt(i+1))
+        size = (width+self.cPatchSize)/self.cPatchSize
+        
+        # Setup the terrain
+        self.initialize(size, size)
+
+        f = open(filename)
+        x = 0
+        y = 0
+        while 1:
+            line = f.readline()
+            if len(line) == 0: return
+            value = line.strip().split(" ")[2]
+            #print x, y, value
+            self.d_array[x][y] = value
+            x += 1
+            if x == width:
+                for a in range(x, size*self.cPatchSize):
+                    #print a, y, value
+                    self.d_array[a][y] = value
+                x = 0
+                y += 1
+                if y == width:
+                    for b in range(y, size*self.cPatchSize):
+                        for a in range(size*self.cPatchSize):
+                            #print a, b, value
+                            self.d_array[a][b] = value
+                    break
         return True
 
     def __fromASCFile(self, filename):
