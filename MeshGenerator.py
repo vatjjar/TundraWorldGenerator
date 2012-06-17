@@ -17,10 +17,11 @@ class MeshGenerator():
         creating mesh files with various content.
     """
 
-    def __init__(self, meshcontainer):
-        """ MeshGenerator.__init__(width, height):
+    def __init__(self, meshcontainer, sharedgeometry=False):
+        """ MeshGenerator.__init__(meshcontainer, sharedgeometry):
         """
         self.meshcontainer = meshcontainer
+        self.sharedgeometry = sharedgeometry
 
 #############################################################################
 # Procedural primitive creators
@@ -41,7 +42,11 @@ class MeshGenerator():
               coordinate system and which is centered to origin.
         """
         self.meshcontainer.initialize()
-        self.meshcontainer.newSubmesh()     # The plane is pushed into single submesh
+        if self.sharedgeometry == True:
+            self.meshcontainer.newSharedGeometry()
+        else:
+            self.meshcontainer.newSubmesh()     # The plane is pushed into single submesh
+
         x_delta = 1.0 / LOD
         z_delta = 1.0 / LOD
         #
@@ -51,10 +56,12 @@ class MeshGenerator():
             for z in range(LOD+1):
                 self.meshcontainer.addVertex([-0.5 + x*x_delta, 0.0, -0.5 + z*z_delta])
                 self.meshcontainer.addNormal([0.0, 1.0, 0.0])
-                self.meshcontainer.addTexcoord([x*x_delta, z*z_delta])
+                self.meshcontainer.addTexcoord([x*x_delta, z*z_delta], 0)
         #
         # And according to above, we create the faces
         #
+        if self.sharedgeometry == True:
+            self.meshcontainer.newSubmesh()
         for x in range(LOD):
             for z in range(LOD):
                 self.meshcontainer.addFace([z+x*(LOD+1), 1+z+x*(LOD+1), LOD+2+z+x*(LOD+1)])
@@ -114,7 +121,10 @@ class MeshGenerator():
         rDelta = (r1-r2)/slices
 
         self.meshcontainer.initialize()
-        self.meshcontainer.newSubmesh()     # The plane is pushed into single submesh
+        if self.sharedgeometry == True:
+            self.meshcontainer.newSharedGeometry()
+        else:
+            self.meshcontainer.newSubmesh()     # The cylinder is pushed into single submesh
 
         for i in xrange(slices+1):          # Vertical slices
             for j in xrange(nR):            # Circular slices
@@ -122,7 +132,10 @@ class MeshGenerator():
                 a = j*2*math.pi/(nR-1)      # Current circle angle
                 self.meshcontainer.addVertex([r*math.sin(a), -0.5+i*hDelta, r*math.cos(a)])
                 self.meshcontainer.addNormal([0.0, -1.0, 0.0]) # This is bogus
-                self.meshcontainer.addTexcoord([j*1.0/(nR-1), i*hDelta])
+                self.meshcontainer.addTexcoord([j*1.0/(nR-1), i*hDelta], 0)
+
+        if self.sharedgeometry == True:
+            self.newSubmesh()
 
         for i in xrange(slices):
             for j in xrange(nR-1):
@@ -139,7 +152,10 @@ class MeshGenerator():
         hDelta = 2.0/slices
 
         self.meshcontainer.initialize()
-        self.meshcontainer.newSubmesh()     # The plane is pushed into single submesh
+        if self.sharedgeometry == True:
+            self.meshcontainer.newSharedGeometry()
+        else:
+            self.meshcontainer.newSubmesh()     # The sphere is pushed into single submesh
 
         for i in xrange(slices+1):          # Vertical slices
             r = math.sqrt(1.0-(-1.0+i*hDelta)*(-1.0+i*hDelta))
@@ -147,7 +163,10 @@ class MeshGenerator():
                 a = j*2*math.pi/(nR-1)      # Current circle angle
                 self.meshcontainer.addVertex([r*math.sin(a), -1.0+i*hDelta, r*math.cos(a)])
                 self.meshcontainer.addNormal([0.0, -1.0, 0.0]) # This is bogus
-                self.meshcontainer.addTexcoord([j*1.0/(nR-1), i*hDelta])
+                self.meshcontainer.addTexcoord([j*1.0/(nR-1), i*hDelta], 0)
+
+        if self.sharedgeometry == True:
+            self.meshcontainer.newSubmesh()
 
         for i in xrange(slices):
             for j in xrange(nR-1):
@@ -158,8 +177,9 @@ class MeshGenerator():
 
 if __name__ == "__main__": # if run standalone
     mesh = MeshContainer.MeshContainer()
-    meshgen = MeshGenerator(mesh)
-    meshgen.createCube(LOD=1)
+    meshgen = MeshGenerator(mesh, sharedgeometry=True)
+    meshgen.createPlane(LOD=1)
+    #meshgen.createCube(LOD=1)
     #meshgen.createCylinder(0.25, 0.75, LOD=10, end1=True, end2=True)
     #meshgen.createSphere(LOD=15)
     meshio = MeshIO.MeshIO(mesh)
