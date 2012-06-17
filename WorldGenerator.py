@@ -300,7 +300,7 @@ class WorldGenerator():
     def createEntity_Waterplane(self, sync, name, width, height, level):
         self.TXML.startEntity()
         self.createComponent_Name(sync, { "name"            :str(name) } )
-        self.createComponent_Placeable(sync, { "Transform"  :"0,0,%d,0,0,0,1,1,1"%level } )
+        self.createComponent_Placeable(sync, { "Transform"  :"0,%f,0,0,0,0,1,1,1" % float(level) } )
         self.createComponent_Waterplane(sync, { "x-size"     :str(width),
                                                 "y-size"     :str(height) } )
         self.TXML.endEntity()
@@ -315,11 +315,11 @@ class WorldGenerator():
                                             "Script application name":"AvatarApp" } )
         self.TXML.endEntity()
 
-    def createEntity_SimpleSky(self, sync, name):
+    def createEntity_SimpleSky(self, sync, name, texture="rex_sky_front.dds;rex_sky_back.dds;rex_sky_left.dds;rex_sky_right.dds;rex_sky_top.dds;rex_sky_bot.dds"):
         self.TXML.startEntity()
         self.createComponent_Name(sync, { "name":str(name) } )
         self.createComponent_Environmentlight(sync)
-        self.createComponent_Sky(sync)
+        self.createComponent_Sky(sync, {"Texture":texture})
         self.TXML.endEntity()
 
 
