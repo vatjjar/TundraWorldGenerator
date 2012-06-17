@@ -15,10 +15,10 @@ import MeshContainer
 #
 # Implemented classes:
 #  - MeshIO                 - Helper wrapper for basic IO functionality
-#  - OgreXMLImport          - For Ogre XML importing
-#  - OgreXMLExport          - For Ogre XML exporting
-#  - OgreMeshImport         - For Ogre binary mesh import
-#  - VTKImport              - For VTK ASCII mesh import
+#  - OgreXMLImport          - Private class for Ogre XML importing
+#  - OgreXMLExport          - Private class for Ogre XML exporting
+#  - OgreMeshImport         - Private class for Ogre binary mesh import
+#  - VTKImport              - Private class for VTK ASCII mesh import
 #
 
 class MeshIO():
@@ -39,7 +39,7 @@ class MeshIO():
         else:
             print "Unknown mimetype %s. Import Aborted!" % item.mimetype
 
-    def toFile(self, localfile, overwrite=False, positions=True, normals=True, texcoords=True, diffusecolors=True):
+    def toFile(self, localfile, overwrite=False, positions=True, normals=True, texcoords0=True, texcoords1=True, diffusecolors=True):
         if os.path.exists(localfile):
             if overwrite == False:
                 print "Output file %s already exists, abort" % localfile
@@ -50,9 +50,9 @@ class MeshIO():
                 return
         if localfile.endswith(".xml"):
             ml = OgreXMLExport(self.meshcontainer, localfile, overwrite)
-            ml.toFile(localfile, positions, normals, texcoords, diffusecolors)
+            ml.toFile(localfile, positions=positions, normals=normals, texcoords0=texcoords0, texcoords1=texcoords1, diffusecolors=diffusecolors)
         else:
-            print "Uknown file ending. Abort!"
+            print "Unknown file ending '%s'. Abort!" % localfile[-4:]
 
     def build3DTextures(self, prefix="3dtex%d.bin", overwrite=False):
         count = 0
@@ -304,8 +304,8 @@ class OgreXMLExport():
                                ((len(cVector) != 0)&diffusecolors),
                                tex0_dimensions = tdim0,
                                tex1_dimensions = tdim1)
-        print "Tex bank 0: ", tdim0, texcoords0, len(tVector0)
-        print "Tex bank 1: ", tdim1, texcoords1, len(tVector1)
+        #print "Tex bank 0: ", tdim0, texcoords0, len(tVector0)
+        #print "Tex bank 1: ", tdim1, texcoords1, len(tVector1)
 
         counter = 0
         while counter < len(vb.vertices)/3:
@@ -580,9 +580,10 @@ if __name__ == "__main__":
         meshio = MeshIO(mesh)
         meshio.fromFile(input, None)
         mesh.printStatistics()
+        mesh.buildAABBMesh()
         if output != None:
             print "Trying output write to %s" % output
-            meshio.build3DTextures(prefix="3dtex%03d.bin", overwrite=True)
+            #meshio.build3DTextures(prefix="3dtex%03d.bin", overwrite=True)
             meshio.toFile(output, overwrite=True)
     except IOError:
         print "Error parsing the input file!"
