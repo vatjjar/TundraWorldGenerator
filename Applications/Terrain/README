@@ -1,0 +1,18 @@
+Terrain generation example
+--------------------------
+
+This example uses TundraWorldGenerator to read input terrain heightmap
+from external ASC file, and converts it into Tundra NTF format. It also
+decorates the rest of the scene. i.e. it inserts skybox and waterplane.
+Terrain surface weightmap is calculated as well based on the height
+values of the input terrain. An avatar application is included as well.
+
+To run the creation process, use the Makefile. Just type "make". It is
+assumed that the directory structure is relative to TundraWorldGenerator.
+Hence, it is assumed that that the tools are found from ../.. directory.
+
+The project makes a reference to skybox textures and avatar application.
+These can be found from the realXtend Tundra distribution. In order
+to run the scene, you need to setup the paths so that Tundra finds those
+files. This needs to be done manually, and it is not in the scope of this
+example.
