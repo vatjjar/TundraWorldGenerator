@@ -292,11 +292,12 @@ class OgreXMLExport():
         vb.debugMinMax()
         tdim0 = vb.texcoordDimensions[0]
         tdim1 = vb.texcoordDimensions[1]
+        cDim  = vb.diffusecolorDimensions;
         vVector  = [vb.vertices[x:x+3]           for x in xrange(0, len(vb.vertices), 3)]
         nVector  = [vb.normals[x:x+3]            for x in xrange(0, len(vb.normals), 3)]
         tVector0 = [vb.texcoords[x:x+tdim0]      for x in xrange(0, len(vb.texcoords), tdim0)]
         tVector1 = [vb.texcoords_1[x:x+tdim1]    for x in xrange(0, len(vb.texcoords_1), tdim1)]
-        cVector  = [vb.diffusecolors[x:x+3]      for x in xrange(0, len(vb.diffusecolors), 3)]
+        cVector  = [vb.diffusecolors[x:x+cDim]   for x in xrange(0, len(vb.diffusecolors), cDim)]
         self.startVertexbuffer(((len(vVector) != 0)&positions),
                                ((len(nVector) != 0)&normals),
                                ((len(tVector0) != 0)&texcoords0),
@@ -318,7 +319,10 @@ class OgreXMLExport():
             if len(tVector1) > 0 and texcoords1:
                 self.outputTexcoord(tVector1[counter])
             if len(cVector) > 0 and diffusecolors:
-                self.outputDiffuseColor(cVector[counter][0], cVector[counter][1], cVector[counter][2])
+                if cDim == 3:
+                    self.outputDiffuseColor(cVector[counter][0], cVector[counter][1], cVector[counter][2])
+                else: # cDim == 4
+                    self.outputDiffuseColor(cVector[counter][0], cVector[counter][1], cVector[counter][2], cVector[counter][3])
             self.endVertex()
             counter += 1
         self.endVertexbuffer()
@@ -458,8 +462,11 @@ class OgreXMLExport():
     def outputFace(self, v1, v2, v3):
         self.__outputXML("<face v1=\"%d\" v2=\"%d\" v3=\"%d\"/>" % (v1, v2, v3))
 
-    def outputDiffuseColor(self, r, g, b):
-        self.__outputXML("<colour_diffuse value=\"%1.6f %1.6f %1.6f\" />" % (r, g, b))
+    def outputDiffuseColor(self, r, g, b, a=None):
+        if a == None:
+            self.__outputXML("<colour_diffuse value=\"%1.6f %1.6f %1.6f\" />" % (r, g, b))
+            return
+        self.__outputXML("<colour_diffuse value=\"%1.6f %1.6f %1.6f %1.6f\" />" % (r, g, b, a))
 
 #############################################################################
 # OgreMeshImport class - for importing binary ogre meshes
