@@ -294,7 +294,7 @@ class MeshContainer():
                     print "something went wrong! i %d, f %d (old=%d)" % (i, self.faces[i], t)
                 va  += vb.vertices     [3*self.faces[i]:3*self.faces[i]+3]  # and append the data
                 na  += vb.normals      [3*self.faces[i]:3*self.faces[i]+3]
-                ca  += vb.diffusecolors[3*self.faces[i]:3*self.faces[i]+3]
+                ca  += vb.diffusecolors[vb.diffusecolorDimensions*self.faces[i]:vb.diffusecolorDimensions*self.faces[i]+vb.diffusecolorDimensions]
                 ta1 += vb.texcoords    [vb.texcoordDimensions[0]*self.faces[i]:vb.texcoordDimensions[0]*self.faces[i]+vb.texcoordDimensions[0]]
                 ta2 += vb.texcoords_1  [vb.texcoordDimensions[1]*self.faces[i]:vb.texcoordDimensions[1]*self.faces[i]+vb.texcoordDimensions[1]]
                 self.faces[i] = offset
@@ -385,6 +385,7 @@ class MeshContainer():
             self.texcoords          = []    # There is actually up to eight of texcoords banks
             self.texcoords_1        = []    # Only two supported for testing, for now
             self.diffusecolors      = []
+            self.diffusecolorDimensions = 3
             self.texcoordDimensions = [2,2] # Default dimensions for the texcoord banks
             self.resetMinMax()
         def resetMinMax(self):
@@ -422,6 +423,9 @@ class MeshContainer():
         def setTexcoordDimensions(self, t_array, t_dim):
             try:   self.texcoordDimensions[t_array] = t_dim
             except IndexError: pass
+        def setDiffusecolorDimensions(self, c_dim):
+            #self.__message("Setting diffusecolor dimension to %d" % c_dim)
+            self.diffusecolorDimensions = c_dim;
 
         ##############################################################################
         # Vertexbuffer content adaptation:
@@ -451,7 +455,9 @@ class MeshContainer():
             if bank == 1:
                 for t in t_list: self.texcoords_1.append(t)
         def addDiffuseColor(self, c_list):
-            for c in c_list.split(" "):
+            colorComponents = c_list.split(" ")
+            self.setDiffusecolorDimensions(len(colorComponents))
+            for c in colorComponents:
                 self.diffusecolors.append(float(c))
 
         ##############################################################################
@@ -552,7 +558,7 @@ class MeshContainer():
             cubicB = numpy.zeros((size, size, size), dtype=numpy.float32)
             cubicN = numpy.zeros((size, size, size), dtype=numpy.int32)
             vVector = [self.vertices[x:x+3]      for x in xrange(0, len(self.vertices), 3)]
-            cVector = [self.diffusecolors[x:x+3] for x in xrange(0, len(self.diffusecolors), 3)]
+            cVector = [self.diffusecolors[x:x+self.diffusecolorDimensions] for x in xrange(0, len(self.diffusecolors), self.diffusecolorDimensions)]
             for i in range(len(vVector)):
                 x = int(size*(vVector[i][0] - self.min_x)/self.scaleF)     # x, y, z will range in [0..size]
                 y = int(size*(vVector[i][1] - self.min_y)/self.scaleF)
@@ -753,7 +759,7 @@ class MeshContainer():
 
         elif append == True:
             for i in range(len(meshcontainer.submeshes)):
-                self.newSubmesh()
+                self.newSubmesh(meshcontainer.submeshes[i].materialref)
                 sm1 = self.submeshes[-1]            # meshcontainer submeshes always go to the end of the list
                 sm2 = meshcontainer.submeshes[i]
                 sm1.merge(sm2, shared_vertices)     # Merge agaist empty submesh in the end of the list == append
@@ -848,7 +854,7 @@ class MeshContainer():
             except IndexError: pass
             try: self.__message("   Normals=%d" % (len(m.vertexBuffer.normals)/3))
             except IndexError: pass
-            try: self.__message("   Diffuse colors=%d" % (len(m.vertexBuffer.diffusecolors)/3))
+            try: self.__message("   Diffuse colors=%d" % (len(m.vertexBuffer.diffusecolors)/m.vertexBuffer.diffusecolorDimensions))
             except IndexError: pass
             try: self.__message("   Texcoords 0 bank=%d, dimensions=%d" % (len(m.vertexBuffer.texcoords)/m.vertexBuffer.texcoordDimensions[0], m.vertexBuffer.texcoordDimensions[0]))
             except IndexError: pass
