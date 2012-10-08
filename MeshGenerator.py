@@ -36,7 +36,7 @@ class MeshGenerator():
     # Plane
     # - Creates a planar mesh
     #
-    def createPlane(self, LOD=1):
+    def createPlane(self, LOD=1, materialref=""):
         """ MeshGenerator.createPlane(self, LOD): Create a plane mesh component
             - Method will create a plane mesh component in XZ-plane whose size is 1 times 1 units in
               coordinate system and which is centered to origin.
@@ -45,7 +45,7 @@ class MeshGenerator():
         if self.sharedgeometry == True:
             self.meshcontainer.newSharedGeometry()
         else:
-            self.meshcontainer.newSubmesh()     # The plane is pushed into single submesh
+            self.meshcontainer.newSubmesh(materialref=materialref)     # The plane is pushed into single submesh
 
         x_delta = 1.0 / LOD
         z_delta = 1.0 / LOD
@@ -61,7 +61,7 @@ class MeshGenerator():
         # And according to above, we create the faces
         #
         if self.sharedgeometry == True:
-            self.meshcontainer.newSubmesh()
+            self.meshcontainer.newSubmesh(materialref=materialref)
         for x in range(LOD):
             for z in range(LOD):
                 self.meshcontainer.addFace([z+x*(LOD+1), 1+z+x*(LOD+1), LOD+2+z+x*(LOD+1)])
@@ -112,13 +112,13 @@ class MeshGenerator():
 
     #########################################################################
     # Cylinder
-    # - Constructs a cylinder with either open or closed ends
+    # - Constructs a cylinder with experimental support for callbacks
     #
-    def createCylinder(self, r1, r2, LOD=1, end1=True, end2=True):
+    def createCylinder(self, slices=2, LOD=1, minH=0.0, maxH=1.0, callback=None):
         nR = 5+LOD
-        slices = LOD+1
-        hDelta = 1.0/slices
-        rDelta = (r1-r2)/slices
+        rDelta = 2.0*math.pi/nR
+        hDelta = (maxH-minH)/(slices-1)
+        print "MeshGenerator::createCylinder slices=%d, nR=%d, rDelta=%f, hDelta=%f" % (slices, nR, rDelta, hDelta)
 
         self.meshcontainer.initialize()
         if self.sharedgeometry == True:
@@ -126,21 +126,28 @@ class MeshGenerator():
         else:
             self.meshcontainer.newSubmesh()     # The cylinder is pushed into single submesh
 
-        for i in xrange(slices+1):          # Vertical slices
-            for j in xrange(nR):            # Circular slices
-                r = r2 + i*rDelta           # Current slice radius
-                a = j*2*math.pi/(nR-1)      # Current circle angle
-                self.meshcontainer.addVertex([r*math.sin(a), -0.5+i*hDelta, r*math.cos(a)])
-                self.meshcontainer.addNormal([0.0, -1.0, 0.0]) # This is bogus
+        for i in xrange(slices):                # Vertical slices
+            for j in xrange(nR):                # Circular slices
+                if callback == None:
+                    r = 0.5
+                else:
+                    r = callback(i*hDelta, j*rDelta)
+                self.meshcontainer.addVertex([r*math.sin(j*rDelta), minH+i*hDelta, r*math.cos(j*rDelta)])
+                self.meshcontainer.addNormal([0.0, -1.0, 0.0]) # This is bogus, for the time being
                 self.meshcontainer.addTexcoord([j*1.0/(nR-1), i*hDelta], 0)
 
         if self.sharedgeometry == True:
-            self.newSubmesh()
+            self.meshcontainer.newSubmesh()
 
-        for i in xrange(slices):
+        for i in xrange(slices-1):
             for j in xrange(nR-1):
-                self.meshcontainer.addFace([i*nR+j, (i+1)*nR+j,   (i+1)*nR+j+1])
-                self.meshcontainer.addFace([i*nR+j, (i+1)*nR+j+1, i*nR+j+1])
+                self.meshcontainer.addFace([i*nR+j, (i+1)*nR+j+1, (i+1)*nR+j])
+                self.meshcontainer.addFace([i*nR+j, i*nR+j+1, (i+1)*nR+j+1])
+            self.meshcontainer.addFace([i*nR+j+1, (i+1)*nR+0, (i+1)*nR+j+1])
+            self.meshcontainer.addFace([i*nR+j+1, i*nR+0, (i+1)*nR+0])
+
+        # Surface normal re-calculation should be here once the faces have been set ...
+
 
     #########################################################################
     # Sphere
