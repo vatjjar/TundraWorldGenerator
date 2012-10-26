@@ -108,13 +108,15 @@ class TerrainGenerator():
         
     def __fromXYZFile(self, filename):
         with open(filename) as f:
-            for i, l in enumerate(f):
-                pass
-        width = int(sqrt(i+1))
-        size = (width+self.cPatchSize)/self.cPatchSize
-        
+            for i, l in enumerate(f): pass
+
+        inputWidth = int(sqrt(i+1))
+        totalWidth = ((inputWidth/self.cPatchSize)+1)*self.cPatchSize
+        patches = totalWidth/self.cPatchSize
+        #print "lines ", i+1, inputWidth, totalWidth, patches
+
         # Setup the terrain
-        self.initialize(size, size)
+        self.initialize(patches, patches)
 
         f = open(filename)
         x = 0
@@ -126,16 +128,16 @@ class TerrainGenerator():
             #print x, y, value
             self.d_array[x][y] = value
             x += 1
-            if x == width:
-                for a in range(x, size*self.cPatchSize):
-                    #print a, y, value
+            if x == inputWidth:
+                for a in range(x, totalWidth):
+                    #print " ", a, y, value
                     self.d_array[a][y] = value
                 x = 0
                 y += 1
-                if y == width:
-                    for b in range(y, size*self.cPatchSize):
-                        for a in range(size*self.cPatchSize):
-                            #print a, b, value
+                if y == inputWidth:
+                    for b in range(y, totalWidth):
+                        for a in range(totalWidth):
+                            #print "  ", a, b, value
                             self.d_array[a][b] = value
                     break
         return True
