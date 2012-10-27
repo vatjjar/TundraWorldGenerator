@@ -543,12 +543,77 @@ class TerrainGenerator():
         else:
             return 255, 0, 0
 
+    def crop(self, offsetX, offsetY, patchesX=1, patchesY=1):
+        """ TerrainGenerator.crop(offsetX, offsetY, patchesX, patchesY)
+            - This method can be used to extract given subregion from the current terrain map.
+              The method expects that the terrain is already initialized via some available method
+              and the given rectangle for cropping will fit inside the current terrain.
+            - offsetX and offsetY define the top left coordinate from where the crop will start
+              and patchesX,patchesY pair define the number of full patches to be extracted.
+            Return value: True if success, False if failure
+        """
+
+        #self.printmessage("Cropping terrain offset (%d,%d), patches (%d,%d), totalsize (%d,%d) elements" % \
+        #    (offsetX, offsetY, patchesX, patchesY, patchesX*self.cPatchSize, patchesY*self.cPatchSize))
+
+        # First check the request is within current table dimensions:
+        if (offsetX + patchesX*self.cPatchSize > self.width*self.cPatchSize):
+            return False
+        if (offsetY + patchesY*self.cPatchSize > self.height*self.cPatchSize):
+            return False
+
+        # Next, allocate the new table:
+        newTable = numpy.zeros([patchesX*self.cPatchSize, patchesY*self.cPatchSize], dtype=float)
+        for x in range(patchesX*self.cPatchSize):
+            for y in range(patchesY*self.cPatchSize):
+                newTable[x][y] = self.d_array[offsetX+x][offsetY+y];
+
+        # Finally override the old variables
+        self.d_array = newTable
+        self.width = patchesX
+        self.height = patchesY
+        return True
+
+    def mirror(self, mirrorX=True, mirrorY=False):
+        """ TerrainGenerator.mirror(mirrorX, mirrorY)
+            Return value: always True
+        """
+
+        #self.printmessage("Mirroring terrain data mirrorX=%s, mirrorY=%s" % (mirrorX, mirrorY))
+
+        if mirrorX == True:
+            # Allocate the new table:
+            newTable = numpy.zeros([self.width*self.cPatchSize, self.height*self.cPatchSize], dtype=float)
+            for x in range(self.width*self.cPatchSize):
+                for y in range(self.height*self.cPatchSize):
+                    newTable[x][y] = self.d_array[self.width*self.cPatchSize-1-x][y];
+            # Override the old variables
+            self.d_array = newTable
+
+        if mirrorY == True:
+            # Allocate the new table:
+            newTable = numpy.zeros([self.width*self.cPatchSize, self.height*self.cPatchSize], dtype=float)
+            for x in range(self.width*self.cPatchSize):
+                for y in range(self.height*self.cPatchSize):
+                    newTable[x][y] = self.d_array[x][self.height*self.cPatchSize-1-y];
+            # Override the old variables
+            self.d_array = newTable
+
+        return True
+
 #############################################################################
 
 if __name__ == "__main__":
     # If run standalone, we will run a bunch of test cases
 
     terrain = TerrainGenerator(16,16)
+
+    # crop and mirror test methods
+    #terrain.fromFile("../TundraWorldGenerator/Applications/syote/resources/S5124C.xyz")
+    #terrain.crop(57, 63, 2, 2)
+    #terrain.mirror(mirrorX=True, mirrorY=True)
+    #terrain.toFile("testterrain.ntf", overwrite=True)
+    #sys.exit(0)
 
     print "Running input/output test"
     terrain.fromFile("./resources/terrain.ntf")
