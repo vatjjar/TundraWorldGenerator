@@ -380,6 +380,8 @@ class MeshContainer():
     #
     class VertexBuffer():
         def __init__(self):
+            self.reset()
+        def reset(self):
             self.vertices           = []
             self.normals            = []
             self.texcoords          = []    # There is actually up to eight of texcoords banks
@@ -700,6 +702,8 @@ class MeshContainer():
     # - optimize()
     # - buildAABBMesh()
     # - edgeCollapse()
+    # - toSharedgeometry()
+    # - collapseSimilars()
     #
     def translate(self, x, y, z):
         self.__message("Meshcontainer: translate %f %f %f" % (x, y, z))
@@ -826,6 +830,37 @@ class MeshContainer():
                 m.collapseEdges(None, percentage, amount, {})
                 m.collapseVertexbuffer(None, 0, {}, [], [], [], [], [])
 
+    def toSharedgeometry(self): # This method transforms a mesh into sharedgeometry structure, if it is not already
+        self.__message("MeshContainer: toSharedgeometry()")
+        if self.sharedgeometry != None:
+            return # If this container is already based on SG, do nothing then
+        self.sharedgeometry = MeshContainer.VertexBuffer()
+        self.currentEntity = self.sharedgeometry
+        faceOffset = 0
+        for m in self.submeshes:
+            self.sharedgeometry.merge(m.vertexBuffer)
+            for i in range(len(m.faces)):
+                m.faces[i] += faceOffset;
+            faceOffset += len(m.vertexBuffer.vertices)/3
+            m.vertexBuffer.reset()
+
+    def collapseSimilars(self): # This method collapses all submeshesh into one, which share the same materialref
+        self.__message("MeshContainer: collapseSimilars()")
+        try:
+            for i in range(len(self.submeshes)):
+                temp = self.submeshes[i] # Trigger an artificial IndexError, if vector has already run out due to collapsing
+                deleteList = []
+                for j in range(i+1, len(self.submeshes)):
+                    if self.submeshes[i].materialref == self.submeshes[j].materialref:
+                        #self.__message("Collapsing submesh %d into %d, materialref = %s" % (j, i,  self.submeshes[i].materialref))
+                        self.submeshes[i].merge(self.submeshes[j])
+                        deleteList.append(j)
+                deleteList.reverse()
+                for d in deleteList: del self.submeshes[d]
+        except IndexError:
+            #self.__message("Done collapsing")
+            pass
+
     #####
     # MeshContainer: debug
     #
@@ -860,7 +895,7 @@ class MeshContainer():
             except IndexError: pass
             try: self.__message("   Texcoords 1 bank=%d, dimensions=%d" % (len(m.vertexBuffer.texcoords_1)/m.vertexBuffer.texcoordDimensions[1], m.vertexBuffer.texcoordDimensions[1]))
             except IndexError: pass
-        index += 1
+            index += 1
 
 ###############################################################################
 # Unit test case
@@ -870,6 +905,36 @@ if __name__ == "__main__":
     import getopt
     import MeshGenerator
     import MeshIO
+
+    # Load all template meshes
+    baseMesh = MeshContainer()
+    meshIO = MeshIO.MeshIO(baseMesh)
+    birchMesh = MeshContainer()
+    meshIO_birch = MeshIO.MeshIO(birchMesh)
+    meshIO_birch.fromFile("../TundraWorldGenerator/Applications/syote/resources/birch.mesh.xml", "model/x-ogremesh")
+    pineMesh = MeshContainer()
+    meshIO_pine = MeshIO.MeshIO(pineMesh)
+    meshIO_pine.fromFile("../TundraWorldGenerator/Applications/syote/resources/pine.mesh.xml", "model/x-ogremesh")
+    spruceMesh = MeshContainer()
+    meshIO_spruce = MeshIO.MeshIO(spruceMesh)
+    meshIO_spruce.fromFile("../TundraWorldGenerator/Applications/syote/resources/spruce.mesh.xml", "model/x-ogremesh")
+    # Transform all into sharedgeometry models
+    baseMesh.toSharedgeometry()
+    birchMesh.toSharedgeometry()
+    pineMesh.toSharedgeometry()
+    spruceMesh.toSharedgeometry()
+    # spill meshes all over the baseMesh
+    for i in range(10):
+        baseMesh.merge(birchMesh, append=True)
+        baseMesh.merge(pineMesh, append=True)
+        baseMesh.merge(spruceMesh, append=True)
+    print "Mesh structure before:"
+    baseMesh.printStatistics()
+    baseMesh.collapseSimilars()
+    print "Mesh structure after:"
+    baseMesh.printStatistics()
+    meshIO.toFile("testmesh.mesh.xml", overwrite=True)
+    sys.exit(0)
 
     mesh = MeshContainer()
     m = MeshGenerator.MeshGenerator(mesh, sharedgeometry=True)
