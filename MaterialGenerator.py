@@ -32,7 +32,7 @@ class MaterialContainer():
         self.reset()
         try: f = open(filename, "r")
         except IOError:
-            print "MeshContainer: Error opening file %s" % filename
+            print "MaterialContainer: Error opening file %s" % filename
             return
         material = None
         lastObject = ""
@@ -535,6 +535,7 @@ class Material():
         self.addPass()
         self.addPassParameters({"diffuse":diffusecolor, "ambient":ambientcolor})
         self.addTextureunit(texture)
+        self.addTextureunitParameters({"texture":texture})
 
     def createMaterial_4channelTerrain(self, name, t1, t2, t3, t4, weightmap):
         self.reset(name)
@@ -573,7 +574,7 @@ if __name__ == "__main__":
     m.addTextureunitParameters({"texture":"wobbly.png", "rotate_anim":"0.25", "colour_op":"add"})
     m.toFile("./resources/testmaterial.material", overwrite=True)
 
-    m.createMaterial_4channelTerrain("terrainsample", "weight.png", "t1.png", "t2.png", "t3.png", "t4.png")
+    m.createMaterial_4channelTerrain("terrainsample", "t1.png", "t2.png", "t3.png", "t4.png", "weight.png")
     m.toFile("./resources/4channelterrainsample.material", overwrite=True)
     m.createMaterial_Diffuseonly("diffuse")
     m.toFile("./resources/diffuseonly.material", overwrite=True)
