@@ -152,6 +152,7 @@ class MeshGenerator():
     #########################################################################
     # Sphere
     # - Constructs a Sphere primitive
+    # - center at origin, radius 1.0
     #
     def createSphere(self, LOD=1):
         nR = 5+LOD
@@ -177,8 +178,8 @@ class MeshGenerator():
 
         for i in xrange(slices):
             for j in xrange(nR-1):
-                self.meshcontainer.addFace([i*nR+j, (i+1)*nR+j,   (i+1)*nR+j+1])
-                self.meshcontainer.addFace([i*nR+j, (i+1)*nR+j+1, i*nR+j+1])
+                self.meshcontainer.addFace([i*nR+j, (i+1)*nR+j+1, (i+1)*nR+j   ])
+                self.meshcontainer.addFace([i*nR+j, i*nR+j+1,     (i+1)*nR+j+1 ])
 
 #############################################################################
 
@@ -190,5 +191,13 @@ if __name__ == "__main__": # if run standalone
     #meshgen.createCylinder(0.25, 0.75, LOD=10, end1=True, end2=True)
     #meshgen.createSphere(LOD=15)
     meshio = MeshIO.MeshIO(mesh)
-    meshio.toFile("./Plane.mesh.xml", overwrite=True)
+    meshio.toFile("./Plane_4.mesh.xml", overwrite=True)
+    meshgen.createPlane(LOD=9)
+    meshio.toFile("./Plane_100.mesh.xml", overwrite=True)
+    meshgen.createPlane(LOD=31)
+    meshio.toFile("./Plane_1000.mesh.xml", overwrite=True)
+    meshgen.createPlane(LOD=99)
+    meshio.toFile("./Plane_10000.mesh.xml", overwrite=True)
+    meshgen.createPlane(LOD=316)
+    meshio.toFile("./Plane_100000.mesh.xml", overwrite=True)
 
