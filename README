@@ -17,9 +17,14 @@ Currently provided generator modules:
 
   - MeshGenerator.py:
 
-Currently provided support modules are
+Currently provided support modules are:
 
   - TXMLOutput.py: A class for formatting TXML output stream for the
   generator
 
   - OgreXMLOutput.py:
+
+Dependencies:
+
+  - Python Imaging Library ( apt-get install python-imaging )
+  - Python Noise ( pip install noise )
