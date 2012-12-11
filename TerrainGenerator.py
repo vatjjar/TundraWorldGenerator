@@ -11,6 +11,7 @@ import random
 import numpy
 from math import *
 from PIL import Image
+from noise import pnoise2
 
 class TerrainGenerator():
     """ class TerrainGenerator():
@@ -471,6 +472,21 @@ class TerrainGenerator():
             self.minitem = level
             self.minvalid = True
         return True
+        
+    def applyPerlinNoise(self, octaves=1, frequency=1, persistence=0.5, amplitude=100):
+        """ TerrainGenerator.applyPerlinNoise(...)
+            - applyPerlinNoise() method generates a heightmap with perlin noise and applies it on top of
+            the current heightmap. If used to generate the initial heightmap, TerrainGenerator.initialize()
+            must be called first.
+        """
+        width = self.width*self.cPatchSize
+        height = self.height*self.cPatchSize
+        frequency = float(frequency) / float(width)
+        
+        for y in range(height):
+            for x in range(width):
+                noise = pnoise2(x * frequency, y * frequency, octaves, persistence)
+                self.d_array[x][y] += noise*amplitude
 
 #############################################################################
 # Terrain helper methods
@@ -632,5 +648,12 @@ if __name__ == "__main__":
     terrain.saturate(-5)
     terrain.toFile("./resources/terrain4.ntf", overwrite=True)
     terrain.toWeightmap("./resources/terrainweights.tga", fileformat="TGA", overwrite=True)
+    
+    print "Running perlin noise test with two passes"
+    terrain.initialize(16, 16)
+    terrain.applyPerlinNoise(2, 2.0, 1.0, 50)
+    terrain.applyPerlinNoise(2, 20.0, 0.5, 3)
+    terrain.toFile("./resources/terrain5.ntf", overwrite=True)
+    terrain.toWeightmap("./resources/terrainweights2.tga", fileformat="TGA", overwrite=True)
 
     print "Done!"
