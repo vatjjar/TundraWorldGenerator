@@ -312,6 +312,108 @@ class MeshContainer():
             #print "rdict end: %d" % len(rdict)
             return offset
 
+        def recalculateNormals(self, sg=None):
+            #
+            # realculateNormals() loops through the submesh facelist, calculated surface normal for each of them
+            # and once that is complete, then loop through all vertices and calculate vertex normals based on
+            # all neighboring faces' surface normals.
+            #
+            print "Submesh: recalculateNormals"
+
+            fVector = [self.faces[x:x+3]                     for x in xrange(0, len(self.faces),                 3)]
+            if sg == None:
+                self.vertexBuffer.normals = [0.0] * len(self.vertexBuffer.vertices) # local normal buffers are reset here
+                nVector = [self.vertexBuffer.normals[x:x+3]  for x in xrange(0, len(self.vertexBuffer.normals),  3)]
+                vVector = [self.vertexBuffer.vertices[x:x+3] for x in xrange(0, len(self.vertexBuffer.vertices), 3)]
+            else:
+                nVector = [sg.normals[x:x+3]                 for x in xrange(0, len(sg.normals),                 3)]
+                vVector = [sg.vertices[x:x+3]                for x in xrange(0, len(sg.vertices),                3)]
+            nFaceVector = []
+
+            # First, we loop through faces, and calculate their normals
+            # and normalize them while we are at it.
+            #
+            for f in fVector:
+                #print f[0], f[1], f[2]
+                v1 = [ vVector[f[1]][0]-vVector[f[0]][0], vVector[f[1]][1]-vVector[f[0]][1], vVector[f[1]][2]-vVector[f[0]][2] ]
+                v2 = [ vVector[f[2]][0]-vVector[f[0]][0], vVector[f[2]][1]-vVector[f[0]][1], vVector[f[2]][2]-vVector[f[0]][2] ]
+                #print vVector[f[0]], vVector[f[1]], vVector[f[2]]
+                #print v1, v2
+                n = []
+                n.append(  v1[1]*v2[2]-v1[2]*v2[1])
+                n.append(-(v1[0]*v2[2]-v1[2]*v2[0]))
+                n.append(  v1[0]*v2[1]-v1[1]*v2[0])
+                l = math.sqrt(n[0]*n[0] + n[1]*n[1] + n[2]*n[2])
+                #if l == 0: n[0] = 0.0; n[1] = 1.0; n[2] = 0.0
+                #else:
+                n[0] /= l
+                n[1] /= l
+                n[2] /= l
+                #print n
+                #print "---"
+                nFaceVector.append(n)
+
+            #
+            for v in range(len(vVector)):                   # Second, loop through vertices, and calculate vertex normals
+                indices = []                                # based on neighbour face surface normals. Vertex normal is an average
+                fIndex = 0                                  # of its neighboring face surface normals, normalized.
+                for f in fVector:                           # ... loop through all faces
+                    if v in f: indices.append(fIndex)       # ... if vertex index is among face indices, append to neighbor list
+                    fIndex += 1
+                #print indices
+                if len(indices) == 0: continue              # ... this case indicated a dead vertex
+                for i in indices:                           # ... loop through all neighbor faces
+                    #print i, fVector[i], nFaceVector[i]
+                    nVector[v][0] += nFaceVector[i][0]      # ... calcualte cumulative sum for normal vector
+                    nVector[v][1] += nFaceVector[i][1]      # ... and at the same time write it to normal buffer
+                    nVector[v][2] += nFaceVector[i][2]
+                l = math.sqrt(nVector[v][0]*nVector[v][0] + nVector[v][1]*nVector[v][1] + nVector[v][2]*nVector[v][2])
+                nVector[v][0] /= l
+                nVector[v][1] /= l
+                nVector[v][2] /= l
+                #print nVector[v]
+                #print "---"
+
+            #                                                ... Copy results into corresponding vertex buffer..
+            if sg == None:
+                self.vertexBuffer.normals = []
+                for normal in nVector:
+                    for n in normal: self.vertexBuffer.normals.append(n)
+            else:
+                sg.normals = []
+                for normal in nVector:
+                    for n in normal: sg.normals.append(n)
+            #print nVector
+
+        def removeDeadFaces(self, sg=None):
+            #
+            # removeDeadFaces() loops through submesh faces, and looks for faces which have one of following:
+            #   - face indices are not unique
+            #   - face vertices pointed by the face indices are not unique
+            # all matched faces are considered dead, and are removed from the facelist
+            #
+            print "Submesh: removeDeadFaces()"
+
+            fVector = [self.faces[x:x+3]                     for x in xrange(0, len(self.faces),                 3)]
+            if sg == None:
+                vVector = [self.vertexBuffer.vertices[x:x+3] for x in xrange(0, len(self.vertexBuffer.vertices), 3)]
+            else:
+                vVector = [sg.vertices[x:x+3]                for x in xrange(0, len(sg.vertices),                3)]
+            newFaceList = []
+            #
+            # loop through the facelist
+            #
+            for f in fVector:
+                if f[0] == f[1]: continue
+                if f[0] == f[2]: continue
+                if f[1] == f[2]: continue
+                if vVector[f[0]] == vVector[f[1]]: continue
+                if vVector[f[0]] == vVector[f[2]]: continue
+                if vVector[f[1]] == vVector[f[2]]: continue
+                for face in f: newFaceList.append(face)
+            print "Dropped %d out of %d faces" % (len(fVector)-len(newFaceList)/3, len(fVector))
+            self.faces = newFaceList
+
         ### Submesh private: ###########################################################################
 
         def __addUniqueEdge(self, a, b):
@@ -699,11 +801,11 @@ class MeshContainer():
     # - rotate()
     # - scale()
     # - merge()
-    # - optimize()
     # - buildAABBMesh()
     # - edgeCollapse()
     # - toSharedgeometry()
     # - collapseSimilars()
+    # - recalculateNormals()
     #
     def translate(self, x, y, z):
         self.__message("Meshcontainer: translate %f %f %f" % (x, y, z))
@@ -860,6 +962,31 @@ class MeshContainer():
         except IndexError:
             #self.__message("Done collapsing")
             pass
+
+    #
+    # This method discards the current normals stored in the mesh, and recalculates them all based on
+    # neighboring face surface vertices
+    #
+    def recalculateNormals(self):
+        self.__message("Meshcontainer: recalculateNormals()")
+        if self.sharedgeometry != None:
+            # if this is a mesh with shared geometry, the normal array needs to be
+            # initialized at this point. the calculator itself will replace the zero
+            # placeholders then when ascending the vertex array
+            self.sharedgeometry.normals = [0.0] * len(self.sharedgeometry.vertices)
+        # loop through all submeshes
+        for s in self.submeshes:
+            s.recalculateNormals(self.sharedgeometry)
+        #if self.sharedgeometry != None: print self.sharedgeometry.normals
+        #else: print self.submeshes[0].vertexBuffer.normals
+
+    #
+    # This method removes all dead (zero sized, orphan etc) faces from the mesh
+    #
+    def removeDeadFaces(self):
+        self.__message("Meshcontainer: removeDeadFaces()")
+        for s in self.submeshes:
+            s.removeDeadFaces(self.sharedgeometry)
 
     #####
     # MeshContainer: debug

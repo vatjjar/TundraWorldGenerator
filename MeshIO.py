@@ -377,10 +377,10 @@ class OgreXMLExport():
         if normal == True:   s_out += "normals=\"true\" "
         if position == True: s_out += "positions=\"true\" "
         if texcoord0 == True:
-            s_out += "texture_coord_dimensions_0=\"float%d\" " % tex0_dimensions
+            s_out += "texture_coord_dimensions_0=\"%d\" " % tex0_dimensions
             t_count += 1
         if texcoord1 == True:
-            s_out += "texture_coord_dimensions_1=\"float%d\" " % tex1_dimensions
+            s_out += "texture_coord_dimensions_1=\"%d\" " % tex1_dimensions
             t_count += 1
         if t_count > 0:
             s_out += ("texture_coords=\"%d\" " % t_count)
