@@ -335,14 +335,15 @@ class MeshContainer():
             #
             for f in fVector:
                 #print f[0], f[1], f[2]
+                #print "%f-%f, %f-%f, %f-%f = %f %f %f" % (vVector[f[1]][0],vVector[f[0]][0], vVector[f[1]][1],vVector[f[0]][1], vVector[f[1]][2],vVector[f[0]][2], vVector[f[1]][0]-vVector[f[0]][0], vVector[f[1]][1]-vVector[f[0]][1], vVector[f[1]][2]-vVector[f[0]][2])
                 v1 = [ vVector[f[1]][0]-vVector[f[0]][0], vVector[f[1]][1]-vVector[f[0]][1], vVector[f[1]][2]-vVector[f[0]][2] ]
                 v2 = [ vVector[f[2]][0]-vVector[f[0]][0], vVector[f[2]][1]-vVector[f[0]][1], vVector[f[2]][2]-vVector[f[0]][2] ]
                 #print vVector[f[0]], vVector[f[1]], vVector[f[2]]
                 #print v1, v2
                 n = []
-                n.append(  v1[1]*v2[2]-v1[2]*v2[1])
+                n.append( (v1[1]*v2[2]-v1[2]*v2[1]))
                 n.append(-(v1[0]*v2[2]-v1[2]*v2[0]))
-                n.append(  v1[0]*v2[1]-v1[1]*v2[0])
+                n.append( (v1[0]*v2[1]-v1[1]*v2[0]))
                 l = math.sqrt(n[0]*n[0] + n[1]*n[1] + n[2]*n[2])
                 #if l == 0: n[0] = 0.0; n[1] = 1.0; n[2] = 0.0
                 #else:
@@ -353,6 +354,8 @@ class MeshContainer():
                 #print "---"
                 nFaceVector.append(n)
 
+            #print nVector
+            #print nFaceVector
             #
             for v in range(len(vVector)):                   # Second, loop through vertices, and calculate vertex normals
                 indices = []                                # based on neighbour face surface normals. Vertex normal is an average
