@@ -473,17 +473,18 @@ class TerrainGenerator():
             self.minvalid = True
         return True
         
-    def smoothen(self):
+    def smoothen(self, passes=1):
         width = self.width*self.cPatchSize
         height = self.height*self.cPatchSize
         
-        for i in range(1, width-1):
-            for j in range(1, width-1):
-                total = 0.0
-                for u in range(-1, 2):
-                    for v in range(-1, 2):
-                        total += self.d_array[i+u][j+v]
-                self.d_array[i][j] = total / 9.0
+        for p in range(passes):
+            for i in range(1, width-1):
+               for j in range(1, width-1):
+                    total = 0.0
+                    for u in range(-1, 2):
+                        for v in range(-1, 2):
+                            total += self.d_array[i+u][j+v]
+                    self.d_array[i][j] = total / 9.0
         
     def applyPerlinNoise(self, octaves=1, frequency=1, persistence=0.5, amplitude=100):
         """ TerrainGenerator.applyPerlinNoise(...)
