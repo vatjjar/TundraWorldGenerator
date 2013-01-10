@@ -473,6 +473,18 @@ class TerrainGenerator():
             self.minvalid = True
         return True
         
+    def smoothen(self):
+        width = self.width*self.cPatchSize
+        height = self.height*self.cPatchSize
+        
+        for i in range(1, width-1):
+            for j in range(1, width-1):
+                total = 0.0
+                for u in range(-1, 2):
+                    for v in range(-1, 2):
+                        total += self.d_array[i+u][j+v]
+                self.d_array[i][j] = total / 9.0
+        
     def applyPerlinNoise(self, octaves=1, frequency=1, persistence=0.5, amplitude=100):
         """ TerrainGenerator.applyPerlinNoise(...)
             - applyPerlinNoise() method generates a heightmap with perlin noise and applies it on top of
@@ -487,6 +499,48 @@ class TerrainGenerator():
             for x in range(width):
                 noise = pnoise2(x * frequency, y * frequency, octaves, persistence)
                 self.d_array[x][y] += noise*amplitude
+                
+    def applyPertubation(self, frequency=32.0, displacement=32.0):
+        width = self.width*self.cPatchSize
+        height = self.height*self.cPatchSize
+        frequency = float(frequency) / float(width)
+        
+        tmp = numpy.zeros([width*self.cPatchSize+1,height*self.cPatchSize+1], dtype=float)
+        
+        for i in range(width):
+            for j in range(height):
+                u = i + int(pnoise2(j * frequency, i * frequency, 1) * displacement)
+                v = j + int(pnoise2(j * frequency, i * frequency, 2) * displacement)
+                if u < 0: u = 0
+                if v < 0: v = 0
+                if u >= width: u = width - 1
+                if v >= height: v = height - 1
+                tmp[i][j] = self.d_array[u][v]
+        self.d_array = tmp
+        
+    def applyErosion(self, smoothness=16.0):
+        width = self.width*self.cPatchSize
+        height = self.height*self.cPatchSize
+        
+        for i in range(1, width-1):
+            for j in range(1, height-1):
+                max = 0.0
+                match = [0,0]
+                
+                for u in range(-1, 2):
+                    for v in range(-1, 2):
+                        if fabs(u) + fabs(v) > 0:
+                            dI = self.d_array[i][j] - self.d_array[i+u][j+v]
+                            if dI > max:
+                                max = dI
+                                match[0] = u
+                                match[1] = v
+                
+                if max > 0 and max <= float(smoothness) / float(width):
+                    dH = 0.5 * max
+                    self.d_array[i][j] -= dH
+                    self.d_array[i+match[0]][j+match[1]] += dH
+        
 
 #############################################################################
 # Terrain helper methods
