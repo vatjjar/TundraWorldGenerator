@@ -24,7 +24,6 @@ import MeshContainer
 class MeshIO():
     def __init__(self, meshcontainer):
         self.meshcontainer = meshcontainer
-        pass
 
     def fromFile(self, localfile, mimetype):
         if mimetype == "model/mesh" or localfile.endswith(".mesh"):
@@ -35,6 +34,9 @@ class MeshIO():
             ml.fromFile(localfile)
         elif mimetype == "model/vtk" or localfile.endswith(".vtk"):
             ml = VTKMeshImport(self.meshcontainer)
+            ml.fromFile(localfile)
+        elif mimetype == "model/obj" or localfile.endswith(".obj"):
+            ml = OBJMeshImport(self.meshcontainer)
             ml.fromFile(localfile)
         else:
             print "Unknown mimetype %s. Import Aborted!" % item.mimetype
@@ -306,7 +308,7 @@ class OgreXMLExport():
                                tex0_dimensions = tdim0,
                                tex1_dimensions = tdim1)
         #print "Tex bank 0: ", tdim0, texcoords0, len(tVector0)
-        #print "Tex bank 1: ", tdim1, texcoords1, len(tVector1)
+        #print "Tex bank 1 ", tdim1, texcoords1, len(tVector1)
 
         counter = 0
         while counter < len(vb.vertices)/3:
@@ -315,7 +317,10 @@ class OgreXMLExport():
             if len(nVector) > 0 and normals:
                 self.outputNormal(nVector[counter][0], nVector[counter][1], nVector[counter][2])
             if len(tVector0) > 0 and texcoords0:
-                self.outputTexcoord(tVector0[counter])
+                # Index error might occure if input data is broken and amount of attributes do not match
+                # In this case, padding of zeros is used in the end of vector
+                try: self.outputTexcoord(tVector0[counter])
+                except IndexError: self.outputTexcoord([0.0]*tdim0)
             if len(tVector1) > 0 and texcoords1:
                 self.outputTexcoord(tVector1[counter])
             if len(cVector) > 0 and diffusecolors:
@@ -377,10 +382,10 @@ class OgreXMLExport():
         if normal == True:   s_out += "normals=\"true\" "
         if position == True: s_out += "positions=\"true\" "
         if texcoord0 == True:
-            s_out += "texture_coord_dimensions_0=\"float%d\" " % tex0_dimensions
+            s_out += "texture_coord_dimensions_0=\"%d\" " % tex0_dimensions
             t_count += 1
         if texcoord1 == True:
-            s_out += "texture_coord_dimensions_1=\"float%d\" " % tex1_dimensions
+            s_out += "texture_coord_dimensions_1=\"%d\" " % tex1_dimensions
             t_count += 1
         if t_count > 0:
             s_out += ("texture_coords=\"%d\" " % t_count)
@@ -547,6 +552,62 @@ class VTKMeshImport():
 
     ###
     # VTKMeshImport stats, for debugging
+    #
+    def printStatistics(self):
+        self.meshcontainer.printStatistics()
+
+#############################################################################
+# OBJMeshImport class - for importing Wavefront OBJ files
+#
+
+class OBJMeshImport():
+    """ OBJMeshImport() is able to eat ASCII OBJ fileformat, which contains mesh formations
+        It is assumed that a single OBJ file contains one object which is split between single
+        shared geometry and multiple (>=1) submeshes. Vertices are stored in a single shared geometry
+        block, and triangles after that are stored in submeshes, separated by a new material
+        defined in the input file.
+    """
+    def __init__(self, meshcontainer):
+        self.meshcontainer = meshcontainer
+
+    ###
+    # OBJMeshImport I/O
+    #
+    def fromFile(self, localfile):
+        """ Import from the .obj file. exceptions are passed through and expected to be caught
+            elsewhere.
+        """
+        f = open(localfile)
+        #
+        # OBJ file contains first vertx attrib data. Hence a sharedgeom block is created at first,
+        # and all attribs are pushed there. Submesh data in the file start with keys "usemtl", which
+        # will be used as a separator between submeshes.
+        #
+        # The import routine parses vertices, texcoords, normals, material refs and face indices
+        #
+        self.meshcontainer.newSharedGeometry()
+        while True:
+            line = f.readline()
+            if len(line) == 0: break
+            l = line.strip().split(" ")
+            if l[0].lower() == "v":
+                self.meshcontainer.addVertex([float(l[2]), float(l[3]), float(l[4])])
+                #print "Vertex:   ", [float(l[2]), float(l[3]), float(l[4])]
+            if l[0].lower() == "vt":
+                self.meshcontainer.addTexcoord([float(l[1]), float(l[2])], 0) # Force to texbank 0
+                #print "Texcoord: ", [float(l[1]), float(l[2])]
+            if l[0].lower() == "n":
+                self.meshcontainer.addNormal([float(l[2]), float(l[3]), float(l[4])])
+                #print "Normal:   ", [float(l[2]), float(l[3]), float(l[4])]
+            if l[0].lower() == "usemtl":
+                self.meshcontainer.newSubmesh(materialref=l[1])
+                #print "Submesh material", l[1]
+            if l[0] == "f":
+                self.meshcontainer.addFace([int(l[2].split("/")[0]), int(l[3].split("/")[0]), int(l[3].split("/")[0])])
+                #print "Face:     ", [int(l[2].split("/")[0]), int(l[3].split("/")[0]), int(l[3].split("/")[0])]
+
+    ###
+    # OBJMeshImport stats, for debugging
     #
     def printStatistics(self):
         self.meshcontainer.printStatistics()
