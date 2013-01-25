@@ -288,7 +288,7 @@ class TerrainGenerator():
             return False
         return True
 
-    def toWeightmap(self, filename, fileformat="TGA", overwrite=False):
+    def toWeightmap(self, filename, fileformat="TGA", overwrite=False, maxitem = None):
         """ TerrainGenerator.toWeightmap(filename, fileformat)
             - toWeightmap() takes the current input terrain vector and creates a texture
               representing the surface texturing.
@@ -304,7 +304,8 @@ class TerrainGenerator():
 
         image = Image.new("RGB", (self.width*self.cPatchSize, self.height*self.cPatchSize))
         data = []
-        maxitem = self.getMaxitem()
+        if maxitem == None:
+            maxitem = self.getMaxitem()
         for i in range(self.width*self.cPatchSize):
             for j in range(self.height*self.cPatchSize):
                 r, g, b = self.height_to_rgb(self.d_array[i][j], limit1=0.5, limit2=maxitem/2, variance=2)
